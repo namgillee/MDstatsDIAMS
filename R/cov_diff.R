@@ -23,8 +23,12 @@ cov_diff <- function(dat_con1, dat_con2) {
         for (j in i:num_frag) {
             cov_x <- var(dat_con1[, i], dat_con1[, j], na.rm = TRUE)
             cov_y <- var(dat_con2[, i], dat_con2[, j], na.rm = TRUE)
-            num_x <- sum((!is.na(dat_con1[, i])) & (!is.na(dat_con1[, j])))
-            num_y <- sum((!is.na(dat_con2[, i])) & (!is.na(dat_con2[, j])))
+            if (is.na(cov_x) | is.na(cov_y)) {
+                num_x <- num_y <- 1
+            } else {
+                num_x <- sum((!is.na(dat_con1[, i])) & (!is.na(dat_con1[, j])))
+                num_y <- sum((!is.na(dat_con2[, i])) & (!is.na(dat_con2[, j])))
+            }
             
             result[i, j] <- result[j, i] <- cov_x / num_x + cov_y / num_y
         }
