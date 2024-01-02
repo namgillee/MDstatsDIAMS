@@ -3,7 +3,8 @@
 #' @param quantity1,quantity2  numeric vectors of normalized fragment peak area
 #' @examples 
 #' paired_t_test(rnorm(10), rnorm(10))
-paired_t_test <- function(quantity1, quantity2, var.equal = TRUE, conf.level = 0.95) {
+paired_t_test <- function(quantity1, quantity2, var.equal = TRUE, 
+                          conf.level = 0.95, verbose = FALSE) {
     # check input length
     if (length(quantity1) != length(quantity2)) {
         print("Input vectors must have the same length.")
@@ -13,7 +14,9 @@ paired_t_test <- function(quantity1, quantity2, var.equal = TRUE, conf.level = 0
     # missing values
     is_na <- is.na(quantity1) | is.na(quantity2)
     if (sum(!is_na) < 3) {
-        print("Input vectors must have at least 3 entries.")
+        if (verbose) {
+            print("Input vectors must have at least 3 entries.")
+        }
         return(list())
     }
     
