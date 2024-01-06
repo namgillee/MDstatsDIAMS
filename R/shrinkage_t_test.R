@@ -40,18 +40,13 @@ shrinkage_t_test_statistic <- function(dat_con1, dat_con2,
 #' 
 #' @param dat_con1,dat_con2  data matrices of normalized fragment ion peak area, 
 #'   each row is a replicate, each column is a fragment ion
-#' @param lambda.var_con1,lambda.var_con2  the variance shrinkage intensities
-#'   for con1 and con2, respectively. If not specified (default), they are 
-#'   estimated by corpcor::cov.shrink function.
-#' @param conf.level  Confidence level. Default is 0.95
 #' @param verbose  TRUE to print messages. Default is FALSE.
 #' @examples 
 #'   dat_x = matrix(rnorm(12), 4, 3)
 #'   dat_y = matrix(rnorm(12), 4, 3)
 #'   shrinkage_t_test(dat_x, dat_y)
 shrinkage_t_test <- function(dat_con1, dat_con2, 
-                             lambda.var_con1, lambda.var_con2,
-                             conf.level = 0.95, verbose = FALSE) {
+                             verbose = FALSE) {
     
     # check number of fragment ions
     if (ncol(dat_con1) != ncol(dat_con2)) {
@@ -64,15 +59,13 @@ shrinkage_t_test <- function(dat_con1, dat_con2,
     # perform shrinkage t-test
     result <- list()
     
-    result$statistic <- shrinkage_t_test_statistic(
-        dat_con1, dat_con2, lambda.var_con1, lambda.var_con2,
-    )
+    result$statistic <- shrinkage_t_test_statistic(dat_con1, dat_con2)
     
     shrinkage_t_test_statistic_wrapper <- function(dat, inds) {
         num_ions <- ncol(dat) / 2
         shrinkage_t_test_statistic(
-            dat[inds, 1:num_ions], dat[inds, (num_ions + 1):(2 * num_ions)], 
-            lambda.var_con1, lambda.var_con2)
+            dat[inds, 1:num_ions], dat[inds, (num_ions + 1):(2 * num_ions)]
+        )
     }
     boot_out <- boot(cbind(dat_con1, dat_con2), 
                      shrinkage_t_test_statistic_wrapper, 

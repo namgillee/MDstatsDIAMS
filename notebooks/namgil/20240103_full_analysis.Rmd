@@ -14,6 +14,7 @@ require(corpcor)
 source("../../R/paired_t_test.R")
 source("../../R/independent_t_test.R")
 source("../../R/shrinkage_t_test.R")
+source("../../R/cov_diff.shrink.R")
 ```
 
 # Load Data
@@ -80,8 +81,7 @@ compute_indep_on_group <- function(groupdf) {
 
 compute_shrink_on_group <- function(groupdf) {
   df.shrink <- groupdf %>% 
-    cast(PG.ProteinGroups + PG.ProteinNames + EG.ModifiedSequence + 
-             R.Condition + R.Replicate ~ 
+    cast(R.Condition + R.Replicate ~ 
              FG.Charge + F.FrgIon + F.FrgLossType + F.Charge,
          value = "F.Log10NormalizedPeakArea", 
          fun.aggregate = mean)
@@ -91,10 +91,10 @@ compute_shrink_on_group <- function(groupdf) {
   con_2 <- conditions[2]
   dat_con1 <- as.matrix(df.shrink %>% 
                            filter(R.Condition == con_1) %>% 
-                           select(FG.Charge, F.FrgIon, F.FrgLossType, F.Charge))
+                           select(-c(R.Condition, R.Replicate)))
   dat_con2 <- as.matrix(df.shrink %>% 
                            filter(R.Condition == con_2) %>% 
-                           select(FG.Charge, F.FrgIon, F.FrgLossType, F.Charge))
+                           select(-c(R.Condition, R.Replicate)))
   
   as.data.frame(shrinkage_t_test(
     dat_con1, dat_con2, verbose = FALSE
@@ -166,4 +166,6 @@ write.csv(resu_paired, file = "resu_paired.csv", row.names = FALSE)
 write.csv(resu_indep, file = "resu_indep.csv", row.names = FALSE)
 write.csv(resu_shrink, file = "resu_shrink.csv", row.names = FALSE)
 ```
+
+
 
