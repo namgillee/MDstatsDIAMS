@@ -17,8 +17,9 @@
 #'   dat_x = matrix(rnorm(12), 4, 3)
 #'   dat_y = matrix(rnorm(12), 4, 3)
 #'   cov_diff_shrink(dat_x, dat_y)
-cov_diff_shrink <- function(dat_con1, dat_con2, 
-                            lambda.var_con1, lambda.var_con2, verbose = FALSE) {
+cov_diff_shrink <- function(
+    dat_con1, dat_con2, lambda.var_con1, lambda.var_con2, verbose = FALSE
+) {
   
     # check number of fragment ions
     if (ncol(dat_con1) != ncol(dat_con2)) {
@@ -53,11 +54,11 @@ cov_diff_shrink <- function(dat_con1, dat_con2,
     attr(result, "lambda_con1.estimated") <- attr(cov_con1, "lambda.estimated")
     attr(result, "lambda.var_con1") <- attr(cov_con1, "lambda.var")
     attr(result, "lambda.var_con1.estimated") <- 
-      attr(cov_con1, "lambda.var.estimated")
+        attr(cov_con1, "lambda.var.estimated")
     attr(result, "lambda_con2") <- attr(cov_con2, "lambda")
     attr(result, "lambda_con2.estimated") <- attr(cov_con2, "lambda.estimated")
     attr(result, "lambda.var_con2") <- attr(cov_con2, "lambda.var")
     attr(result, "lambda.var_con2.estimated") <- 
-      attr(cov_con2, "lambda.var.estimated")
+        attr(cov_con2, "lambda.var.estimated")
     return(result)
 }

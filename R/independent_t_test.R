@@ -21,9 +21,13 @@ independent_t_test <- function(quantity1, quantity2, var.equal = TRUE,
     }
   
     # perform independent sample t-test
-    ttest_out <- t.test(quantity1[!is_na_x], quantity2[!is_na_y], var.equal=var.equal, 
-                        paired=FALSE, conf.level=conf.level)
-    result <- list(statsitic = ttest_out$statistic, df=ttest_out$parameter, 
-                   p.value=ttest_out$p.value, estimate=ttest_out$estimate)
+    ttest_out <- t.test(
+        quantity1[!is_na_x], quantity2[!is_na_y], var.equal=var.equal, 
+        paired=FALSE, conf.level=conf.level
+    )
+    result <- list(
+        statsitic = ttest_out$statistic, df=ttest_out$parameter, 
+        p.value=ttest_out$p.value, estimate=ttest_out$estimate
+    )
     return(result)
 }

@@ -81,23 +81,19 @@ compute_indep_on_group <- function(groupdf) {
 
 compute_shrink_on_group <- function(groupdf) {
   df.shrink <- groupdf %>% 
-    cast(R.Condition + R.Replicate ~ 
-             FG.Charge + F.FrgIon + F.FrgLossType + F.Charge,
+    cast(R.Replicate ~ FG.Charge + F.FrgIon + F.FrgLossType + F.Charge ~ 
+             R.Condition,
          value = "F.Log10NormalizedPeakArea", 
          fun.aggregate = mean)
   
-  conditions <- unique(df.shrink$R.Condition)
-  con_1 <- conditions[1]
-  con_2 <- conditions[2]
-  dat_con1 <- as.matrix(df.shrink %>% 
-                           filter(R.Condition == con_1) %>% 
-                           select(-c(R.Condition, R.Replicate)))
-  dat_con2 <- as.matrix(df.shrink %>% 
-                           filter(R.Condition == con_2) %>% 
-                           select(-c(R.Condition, R.Replicate)))
+  if (is.null(dim(df.shrink)[3]) || (dim(df.shrink)[3] < 2)) {
+      return(data.frame())
+  }
   
+  dat_con1 <- as.matrix(df.shrink[ , , 1])
+  dat_con2 <- as.matrix(df.shrink[ , , 2])
   as.data.frame(shrinkage_t_test(
-    dat_con1, dat_con2, verbose = FALSE
+      dat_con1, dat_con2, verbose = FALSE
   ))
 }
 ```
@@ -156,9 +152,9 @@ resu_paired <- bind_rows(resu_paired)
 resu_indep <- bind_rows(resu_indep)
 resu_shrink <- bind_rows(resu_shrink)
 
-head(resu_paired)
-head(resu_indep)
-head(resu_shrink)
+print(head(resu_paired))
+print(head(resu_indep))
+print(head(resu_shrink))
 ```
 
 ```{r save}
