@@ -10,24 +10,32 @@
 #'   dat_x = matrix(rnorm(12), 4, 3)
 #'   dat_y = matrix(rnorm(12), 4, 3)
 #'   shrinkage_t_test_statistic(dat_x, dat_y)
-shrinkage_t_test_statistic <- function(dat_con1, dat_con2, 
-                                       lambda.var_con1, lambda.var_con2) {
+shrinkage_t_test_statistic <- function(
+    dat_con1, dat_con2, lambda.var_con1, lambda.var_con2
+) {
   
+    result <- NaN
+    
+    if ((length(dim(dat_con1)) < 1) || (length(dim(dat_con2)) < 1)) {
+        return(result)
+    }
+    
     # estimate is the sum of diff over fragment ions, and it constitutes numerator
     # of the statistic formula.
     estimate <- sum(
         apply(dat_con1, 2, mean, na.rm = TRUE) -
             apply(dat_con2, 2, mean, na.rm = TRUE),
-        na.rm = TRUE)
+        na.rm = TRUE
+    )
     
     # covmat is the covariance matrix of diff between each pair of fragment 
     # ions.
-    covmat <- cov_diff_shrink(dat_con1, dat_con2, 
-                              lambda.var_con1, lambda.var_con2, verbose = FALSE)
+    covmat <- cov_diff_shrink(
+        dat_con1, dat_con2, lambda.var_con1, lambda.var_con2, verbose = FALSE
+    )
     
     # shrinkage statistic
     denom <- sqrt(sum(covmat, na.rm = TRUE))
-    result <- NaN
     if (denom > 0) {
         result <- estimate / denom
     }
@@ -45,8 +53,7 @@ shrinkage_t_test_statistic <- function(dat_con1, dat_con2,
 #'   dat_x = matrix(rnorm(12), 4, 3)
 #'   dat_y = matrix(rnorm(12), 4, 3)
 #'   shrinkage_t_test(dat_x, dat_y)
-shrinkage_t_test <- function(dat_con1, dat_con2, 
-                             verbose = FALSE) {
+shrinkage_t_test <- function(dat_con1, dat_con2, verbose = FALSE) {
     
     # check number of fragment ions
     if (ncol(dat_con1) != ncol(dat_con2)) {
@@ -67,10 +74,10 @@ shrinkage_t_test <- function(dat_con1, dat_con2,
             dat[inds, 1:num_ions], dat[inds, (num_ions + 1):(2 * num_ions)]
         )
     }
-    boot_out <- boot(cbind(dat_con1, dat_con2), 
+    boot_out <- boot(cbind(dat_con1, dat_con2),
                      shrinkage_t_test_statistic_wrapper, 
                      R = 500)
-    boot_var <- var(boot_out$t, na.rm = TRUE)
+    boot_var <- var(as.vector(boot_out$t), na.rm = TRUE)
     result$df <- ifelse(boot_var <= 1, Inf, 2 * boot_var / (boot_var - 1))
     result$p.value <- 2 * (1 - pt(result$statistic, result$df))
 

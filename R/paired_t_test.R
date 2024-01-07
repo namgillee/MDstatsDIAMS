@@ -23,9 +23,12 @@ paired_t_test <- function(quantity1, quantity2,
     }
     
     # perform paired t-test
-    ttest_out <- t.test(quantity1[!is_na], quantity2[!is_na], paired=TRUE,
-                        conf.level=conf.level)
-    result <- list(statsitic = ttest_out$statistic, df=ttest_out$parameter, 
-                   p.value=ttest_out$p.value, estimate=ttest_out$estimate)
+    ttest_out <- t.test(
+        quantity1[!is_na], quantity2[!is_na], paired=TRUE, conf.level=conf.level
+    )
+    result <- list(
+        statsitic = ttest_out$statistic, df=ttest_out$parameter, 
+        p.value=ttest_out$p.value, estimate=ttest_out$estimate
+    )
     return(result)
 }
