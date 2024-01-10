@@ -47,8 +47,9 @@ shrinkage_t_test_statistic <- function(
 #' Shrinkage-based t-test for modified peptide using fragment ion peak area
 #' 
 #' @param dat_con1,dat_con2  data matrices of normalized fragment ion peak area, 
-#'   each row is a replicate, each column is a fragment ion
+#'   each row is a replicate, each column is a fragment ion.
 #' @param verbose  TRUE to print messages. Default is FALSE.
+#' @return list of statistic, df, p.value, and estimate.
 #' @examples 
 #'   dat_x = matrix(rnorm(12), 4, 3)
 #'   dat_y = matrix(rnorm(12), 4, 3)
@@ -79,7 +80,7 @@ shrinkage_t_test <- function(dat_con1, dat_con2, verbose = FALSE) {
                      R = 500)
     boot_var <- var(as.vector(boot_out$t), na.rm = TRUE)
     result$df <- ifelse(boot_var <= 1, Inf, 2 * boot_var / (boot_var - 1))
-    result$p.value <- 2 * (1 - pt(result$statistic, result$df))
+    result$p.value <- 2 * (1 - pt(abs(result$statistic), result$df))
 
     result$estimate <- sum(
         apply(dat_con1, 2, mean, na.rm = TRUE) - 

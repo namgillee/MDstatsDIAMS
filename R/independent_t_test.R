@@ -4,8 +4,9 @@
 #' @param quantity1,quantity2  numeric vectors of normalized peptide quantity
 #' @param var.equal  TRUE to assume equal variance between conditions. Default 
 #'   is TRUE.
-#' @param conf.level  Confidence level. Default is 0.95
+#' @param conf.level  Confidence level. Default is 0.95.
 #' @param verbose  TRUE to print messages. Default is FALSE.
+#' @return list of statistic, df, p.value, and estimate.
 #' @examples 
 #' independent_t_test(rnorm(4), rnorm(4))
 independent_t_test <- function(quantity1, quantity2, var.equal = TRUE, 
