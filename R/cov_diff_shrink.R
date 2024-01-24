@@ -42,10 +42,14 @@ cov_diff_shrink <- function(
     }
     
     # compute covariance matrix
-    cov_con1 <- cov.shrink(dat_con1, lambda.var = lambda.var_con1, 
-                           verbose = verbose)
-    cov_con2 <- cov.shrink(dat_con2, lambda.var = lambda.var_con2,
-                           verbose = verbose)
+    suppressWarnings(
+        cov_con1 <- cov.shrink(dat_con1, lambda.var = lambda.var_con1, 
+                               verbose = verbose)
+    )
+    suppressWarnings(
+        cov_con2 <- cov.shrink(dat_con2, lambda.var = lambda.var_con2,
+                               verbose = verbose)
+    )
     result <- cov_con1 / num_con1 + cov_con2 / num_con2
     attributes(result) <- NULL
     dim(result) <- dim(cov_con1)

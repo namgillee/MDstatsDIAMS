@@ -74,23 +74,15 @@ compute_indep_on_group <- function(groupdf) {
 ```
 
 ```{r group_map_f_proposed}
-## Define a wrapper function for shrinkage t test
+## Define a wrapper function for shrinkage t test - rewritten
 ## It is assumed that groupdf consists of a single modified sequence and two 
 ## conditions
 
 compute_shrink_on_group <- function(groupdf) {
-  df.shrink <- groupdf %>% 
-    cast(R.Replicate ~ FG.Charge + F.FrgIon + F.FrgLossType + F.Charge ~ 
-             R.Condition,
-         value = "F.Log10NormalizedPeakArea", 
-         fun.aggregate = mean)
+
+  dat_con1 <- as.matrix(t(groupdf[, 5:8]))
+  dat_con2 <- as.matrix(t(groupdf[, 9:12]))
   
-  if (is.null(dim(df.shrink)[3]) || (dim(df.shrink)[3] < 2)) {
-      return(data.frame())
-  }
-  
-  dat_con1 <- as.matrix(df.shrink[ , , 1])
-  dat_con2 <- as.matrix(df.shrink[ , , 2])
   as.data.frame(shrinkage_t_test(
       dat_con1, dat_con2, verbose = FALSE
   ))
@@ -138,14 +130,23 @@ for (id1 in 1 : (n_conditions - 1)) {
       group_modify(~compute_indep_on_group(.x))
     resu_indep <- c(resu_indep, resu_indep0)
     
-    # Shrinkage t test
-    resu_shrink0 <- pretreat.df %>% 
+    # Shrinkage t test - rewritten
+    df.shrink <- pretreat.df %>% 
+      cast(PG.ProteinGroups + PG.ProteinNames + EG.ModifiedSequence + 
+           FG.Charge + F.FrgIon + F.FrgLossType + F.Charge ~
+           R.Condition + R.Replicate, 
+           value = "F.Log10NormalizedPeakArea", 
+           fun.aggregate = mean)
+    df.shrink[df.shrink == "NaN"] <- NA 
+    
+    resu_shrink0 <- df.shrink %>% 
       group_by(PG.ProteinGroups, PG.ProteinNames, EG.ModifiedSequence) %>%
       group_modify(~compute_shrink_on_group(.x))
     resu_shrink <- c(resu_shrink, resu_shrink0)
     
   }
 }
+
 
 resu_paired <- bind_rows(resu_paired)
 resu_indep <- bind_rows(resu_indep)
@@ -160,7 +161,3 @@ print(head(resu_shrink))
 write.csv(resu_paired, file = "resu_paired.csv", row.names = FALSE)
 write.csv(resu_indep, file = "resu_indep.csv", row.names = FALSE)
 write.csv(resu_shrink, file = "resu_shrink.csv", row.names = FALSE)
-```
-
-
-
