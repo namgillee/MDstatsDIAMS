@@ -1,0 +1,185 @@
+---
+title: "EDA"
+author: "김주형"
+date: "2024-02-01"
+output: html_document
+---
+
+---
+title: "A full analysis using the proposed t-test statistic"
+output: html_notebook
+---
+
+# Load Packages
+
+```{r lib}
+library(dplyr)
+library(reshape)
+library(data.table)
+library(tidyverse)
+library(datasets)
+library(viridis)
+library(knitr)
+
+require(boot)
+require(corpcor)
+#source("../../R/paired_t_test.R")
+#source("../../R/independent_t_test.R")
+#source("../../R/shrinkage_t_test.R")
+#source("../../R/cov_diff.shrink.R")
+```
+
+# Load Data
+
+* Load DIA report and transform normalized fragment peak area by log10.
+* Select required columns only.
+
+```{r data}
+df <- read.delim("D:/MS_Data/PXD015446_report/LiP_Quant_Staurosporine_Dose_Response_HeLa_Report.xls", header = TRUE)
+
+df <- df %>% 
+  filter(F.ExcludedFromQuantification == 'False' & EG.Qvalue < 0.01) %>%
+  mutate(F.Log10NormalizedPeakArea = log10(F.NormalizedPeakArea)) %>%
+  select(R.Condition, R.Replicate, PG.ProteinGroups, PG.ProteinNames,
+         PEP.StrippedSequence, EG.ModifiedSequence,
+         FG.Charge, F.FrgIon, F.FrgLossType, F.Charge, F.FrgNum, F.FrgType,
+         F.Log10NormalizedPeakArea)
+```
+
+```{r filter_data_by_quantity}
+df.filtered <- df %>% filter(F.Log10NormalizedPeakArea > 0)
+
+print(dim(df.filtered))
+```
+
+# 전처리 전/후 데이터의 관심변수에 대한 빈도수 비교
+## 1. Protein Groups
+```{r}
+# 전처리 전 ProteinGroups 개수
+protein.0 <- unique(df$PG.ProteinGroups)
+
+# 전처리 후 ProteinGroups 개수
+protein.1 <- unique(df.filtered$PG.ProteinGroups)
+
+# 전처리 전/후 비교
+data.frame(before = length(protein.0),
+           after = length(protein.1),
+           diffrence = length(protein.0) - length(protein.1))
+# 필터링 이후 ProteinGroups 개수의 차이 없음
+# 전 : 7007
+# 후 : 7007
+```
+## 2. Stripped Sequence
+```{r}
+# 전처리 전 StrippedSequence 개수
+strippedsequence.0 <- unique(df$PEP.StrippedSequence)
+
+# 전처리 후 StrippedSequence 개수
+strippedsequence.1 <- unique(df.filtered$PEP.StrippedSequence)
+
+# 전처리 전/후 비교
+data.frame(before = length(strippedsequence.0),
+           after = length(strippedsequence.1),
+           diffrence = length(strippedsequence.0) - length(strippedsequence.1))
+# 필터링 이후 StrippedSequence 개수의 차이 존재
+# 전 : 144885
+# 후 : 144513 => 372개 제거
+```
+## 3. Modified Sequence
+```{r}
+# 전처리 전 ModifiedSequence 개수
+modified.0 <- unique(df$EG.ModifiedSequence)
+
+# 전처리 후 ModifiedSequence 개수
+modified.1 <- unique(df.filtered$EG.ModifiedSequence)
+
+# 전처리 전/후 비교
+data.frame(before = length(strippedsequence.0),
+           after = length(strippedsequence.1),
+           diffrence = length(strippedsequence.0) - length(strippedsequence.1))
+# 필터링 이후 ModifiedSequence 개수의 차이 존재
+# 전 : 152984
+# 후 : 152585 => 399개 제거
+```
+## 4. Precusor
+```{r}
+# precusor에 해당하는 변수 생성
+# - EG.ModifiedSequence
+# - FG.Charge
+df$precusor <- paste0(df$EG.ModifiedSequence, df$FG.Charge)
+df.filtered$precusor <- paste0(df.filtered$EG.ModifiedSequence,
+                               df.filtered$FG.Charge)
+
+# 전처리 전 precusor 개수
+precusor.0 <- unique(df$precusor)
+
+# 전처리 후 precusor 개수
+precusor.1 <- unique(df.filtered$precusor)
+
+# 전처리 전/후 비교 
+data.frame(before = length(precusor.0),
+           after = length(precusor.1),
+           diffrence = length(precusor.0) - length(precusor.1))
+# 필터링 이후 precusor 개수의 차이 존재
+# 전 : 181323
+# 후 : 180805 => 518개 제거
+```
+## 5. Fragment Ion by Precusor
+```{r}
+# fragment_ion에 해당하는 변수 생성
+# - F.FrgType : fragment ion type
+# - F.FrgNum : fragment number
+# - F.FrgLossType : loss type
+# - F.Charge : fragment charge
+df$fragment_ion <- paste0(df$F.FrgType, '_', df$F.FrgNum, '_', # F.FrgIon 변수와 동일
+                          df$F.FrgLossType, '_', df$F.Charge)
+df.filtered$fragment_ion <- paste0(df.filtered$F.FrgType, '_',
+                                   df.filtered$F.FrgNum, '_',
+                                   df.filtered$F.FrgLossType, '_',
+                                   df.filtered$F.Charge)
+
+# 전처리 전 precusor별 fragment_ion 개수
+fragment_ion.0 <- df %>% group_by(precusor) %>% count(fragment_ion)
+
+# 전처리 후 precusor별 fragment_ion 개수
+fragment_ion.1 <- df.filtered %>% group_by(precusor) %>% count(fragment_ion)
+
+fragment_ion.diff <- merge(fragment_ion.0, fragment_ion.1,
+                           by = c('precusor', 'fragment_ion'), all = T)
+fragment_ion.diff[is.na(fragment_ion.diff) == T] <- 0
+colnames(fragment_ion.diff)[c(3,4)] <- c('before', 'after')
+fragment_ion.diff$diffrence <- fragment_ion.diff$before - fragment_ion.diff$after
+fragment_ion.diff
+```
+
+# R.Condition 변수에 따른 F.Log10NormalizedPeakArea 시각화
+## 1. Boxplot
+```{r boxplot_log10npeakarea}
+boxplot(F.Log10NormalizedPeakArea ~ R.Condition, 
+        data = df.filtered, 
+        xlab = "Condition", 
+        ylab = "Normalized Peak Area, log10", 
+        main = "")
+```
+## 2. Histogram
+```{r histogram_log10npeakarea}
+ggplot(df.filtered, aes(x = F.Log10NormalizedPeakArea,
+                        color = factor(R.Condition),
+                        fill = factor(R.Condition))) +
+  geom_histogram(position='identity',
+                 binwidth=0.15,
+                 alpha=0.6)+
+  scale_fill_viridis(discrete = TRUE)+
+  scale_color_viridis(discrete = TRUE)
+```
+
+```{r}
+par(mfrow = c(2,4))
+for(i in 1:8){
+  hist(df.filtered$F.Log10NormalizedPeakArea[df.filtered$R.Condition ==
+                                             unique(df.filtered$R.Condition)[i]], 
+        xlab = unique(df.filtered$R.Condition)[i], 
+        ylab = "Normalized Peak Area, log10", 
+        main = "")
+}
+```
