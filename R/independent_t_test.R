@@ -27,8 +27,10 @@ independent_t_test <- function(quantity1, quantity2, var.equal = TRUE,
         paired=FALSE, conf.level=conf.level
     )
     result <- list(
-        statsitic = ttest_out$statistic, df=ttest_out$parameter, 
-        p.value=ttest_out$p.value, estimate=ttest_out$estimate
+        statsitic = ttest_out$statistic, 
+        df=ttest_out$parameter, 
+        p.value=ttest_out$p.value, 
+        estimate=ttest_out$estimate[1] - ttest_out$estimate[2]
     )
     return(result)
 }
