@@ -5,13 +5,18 @@
 #' @param lambda.var_con1,lambda.var_con2  the variance shrinkage intensities
 #'   for con1 and con2, respectively. If not specified (default), they are 
 #'   estimated by corpcor::cov.shrink function.
+#' @param cov.equal  TRUE if equal covariance is assumed and a pooled
+#'   covariance matrix is computed.
+#' @param denom.eps  a small constant to be added to the denominator (i.e., 
+#'   standard error of the numerator) of the statistic. This constant is useful
+#'   for bootstrapping with a small sample size.
 #' @return shrinkage-based t-test statistic
 #' @examples 
 #'   dat_x = matrix(rnorm(12), 4, 3)
 #'   dat_y = matrix(rnorm(12), 4, 3)
-#'   shrinkage_t_test_statistic(dat_x, dat_y)
+#'   shrinkage_t_test_statistic(dat_x, dat_y, TRUE, 0)
 shrinkage_t_test_statistic <- function(
-    dat_con1, dat_con2, cov.equal, lambda.var_con1, lambda.var_con2
+    dat_con1, dat_con2, cov.equal, denom.eps, lambda.var_con1, lambda.var_con2
 ) {
   
     result <- NaN
@@ -38,7 +43,7 @@ shrinkage_t_test_statistic <- function(
     # shrinkage statistic
     denom <- sqrt(sum(covmat, na.rm = TRUE))
     if (denom > 0) {
-        result <- estimate / denom
+        result <- estimate / (denom + denom.eps)
     }
     
     return(result)
@@ -50,6 +55,11 @@ shrinkage_t_test_statistic <- function(
 #' @param dat_con1,dat_con2  data matrices of normalized fragment ion peak area, 
 #'   each row is a replicate, each column is a fragment ion.
 #' @param num_boot number of bootstrap replicates. Default is 200. 
+#' @param cov.equal  TRUE if equal covariance is assumed and a pooled
+#'   covariance matrix is computed. Default is TRUE.
+#' @param boot.denom.eps  a small constant to be added to the denominator (i.e., 
+#'   standard error of the numerator) of the bootstrapped statistic. This 
+#'   constant is useful for bootstrapping with a small sample size.
 #' @param verbose  TRUE to print messages. Default is FALSE.
 #' @return list of statistic, df, p.value, and estimate.
 #' @examples 
@@ -57,7 +67,8 @@ shrinkage_t_test_statistic <- function(
 #'   dat_y = matrix(rnorm(12), 4, 3)
 #'   shrinkage_t_test(dat_x, dat_y)
 shrinkage_t_test <- function(
-    dat_con1, dat_con2, num_boot = 100, cov.equal = TRUE, verbose = FALSE
+    dat_con1, dat_con2, num_boot = 100, cov.equal = TRUE, boot.denom.eps = 0.3, 
+    verbose = FALSE
 ) {
     
     # check number of fragment ions
@@ -72,7 +83,7 @@ shrinkage_t_test <- function(
     result <- list()
     
     result$statistic <- shrinkage_t_test_statistic(
-        dat_con1, dat_con2, cov.equal
+        dat_con1, dat_con2, cov.equal, 0
     )
     
     shrinkage_t_test_statistic_wrapper <- function(dat, inds) {
@@ -80,7 +91,8 @@ shrinkage_t_test <- function(
         shrinkage_t_test_statistic(
             dat[inds, 1:num_ions], 
             dat[inds, (num_ions + 1):(2 * num_ions)], 
-            cov.equal
+            cov.equal, 
+            boot.denom.eps
         )
     }
     boot_out <- boot(cbind(dat_con1, dat_con2),
