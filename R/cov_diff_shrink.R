@@ -11,6 +11,8 @@
 #' @param lambda.var_con1,lambda.var_con2  the variance shrinkage intensities
 #'   for con1 and con2, respectively. If not specified (default), they are 
 #'   estimated by corpcor::cov.shrink function.
+#' @param cov.equal  TRUE if equal covariance is assumed and a pooled
+#'   covariance matrix is computed.
 #' @param verbose  TRUE to print messages. Default is FALSE.
 #' @return covariance matrix of mean difference
 #' @examples 
@@ -18,7 +20,8 @@
 #'   dat_y = matrix(rnorm(12), 4, 3)
 #'   cov_diff_shrink(dat_x, dat_y)
 cov_diff_shrink <- function(
-    dat_con1, dat_con2, lambda.var_con1, lambda.var_con2, verbose = FALSE
+    dat_con1, dat_con2, lambda.var_con1, lambda.var_con2, cov.equal = FALSE,
+    verbose = FALSE
 ) {
   
     # check number of fragment ions
@@ -50,7 +53,12 @@ cov_diff_shrink <- function(
         cov_con2 <- cov.shrink(dat_con2, lambda.var = lambda.var_con2,
                                verbose = verbose)
     )
-    result <- cov_con1 / num_con1 + cov_con2 / num_con2
+    if (cov.equal) {
+      const <- 1 / (num_con1 + num_con2 - 2) * (1 / num_con1 + 1 / num_con2)
+      result <- ((num_con1 - 1) * cov_con1 + (num_con2 - 1) * cov_con2) * const
+    } else {
+      result <- cov_con1 / num_con1 + cov_con2 / num_con2
+    }
     attributes(result) <- NULL
     dim(result) <- dim(cov_con1)
     

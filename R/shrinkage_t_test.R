@@ -11,7 +11,7 @@
 #'   dat_y = matrix(rnorm(12), 4, 3)
 #'   shrinkage_t_test_statistic(dat_x, dat_y)
 shrinkage_t_test_statistic <- function(
-    dat_con1, dat_con2, lambda.var_con1, lambda.var_con2
+    dat_con1, dat_con2, cov.equal, lambda.var_con1, lambda.var_con2
 ) {
   
     result <- NaN
@@ -31,7 +31,8 @@ shrinkage_t_test_statistic <- function(
     # covmat is the covariance matrix of diff between each pair of fragment 
     # ions.
     covmat <- cov_diff_shrink(
-        dat_con1, dat_con2, lambda.var_con1, lambda.var_con2, verbose = FALSE
+        dat_con1, dat_con2, lambda.var_con1, lambda.var_con2, 
+        cov.equal = cov.equal, verbose = FALSE
     )
     
     # shrinkage statistic
@@ -55,7 +56,9 @@ shrinkage_t_test_statistic <- function(
 #'   dat_x = matrix(rnorm(12), 4, 3)
 #'   dat_y = matrix(rnorm(12), 4, 3)
 #'   shrinkage_t_test(dat_x, dat_y)
-shrinkage_t_test <- function(dat_con1, dat_con2, num_boot = 200, verbose = FALSE) {
+shrinkage_t_test <- function(
+    dat_con1, dat_con2, num_boot = 100, cov.equal = TRUE, verbose = FALSE
+) {
     
     # check number of fragment ions
     if (ncol(dat_con1) != ncol(dat_con2)) {
@@ -68,12 +71,16 @@ shrinkage_t_test <- function(dat_con1, dat_con2, num_boot = 200, verbose = FALSE
     # perform shrinkage t-test
     result <- list()
     
-    result$statistic <- shrinkage_t_test_statistic(dat_con1, dat_con2)
+    result$statistic <- shrinkage_t_test_statistic(
+        dat_con1, dat_con2, cov.equal
+    )
     
     shrinkage_t_test_statistic_wrapper <- function(dat, inds) {
         num_ions <- ncol(dat) / 2
         shrinkage_t_test_statistic(
-            dat[inds, 1:num_ions], dat[inds, (num_ions + 1):(2 * num_ions)]
+            dat[inds, 1:num_ions], 
+            dat[inds, (num_ions + 1):(2 * num_ions)], 
+            cov.equal
         )
     }
     boot_out <- boot(cbind(dat_con1, dat_con2),
