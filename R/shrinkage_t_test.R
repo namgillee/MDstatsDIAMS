@@ -101,6 +101,8 @@ shrinkage_t_test <- function(
     boot_var <- var(as.vector(boot_out$t), na.rm = TRUE)
     result$df <- ifelse(boot_var <= 1, Inf, 2 * boot_var / (boot_var - 1))
     result$p.value <- 2 * (1 - pt(abs(result$statistic), result$df))
+    boot_mean <- mean(as.vector(boot_out$t), na.rm = TRUE)
+    result$cv <- sqrt(boot_var) / boot_mean
 
     result$estimate <- sum(
         apply(dat_con1, 2, mean, na.rm = TRUE) - 
