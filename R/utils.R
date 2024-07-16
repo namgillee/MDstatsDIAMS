@@ -6,8 +6,6 @@ library(boot)
 
 
 ## Load required functions
-source("../../R/cov_diff_shrink.R")
-source("../../R/cov_diff.R")
 source("../../R/independent_t_test.R")
 source("../../R/paired_t_test.R")
 source("../../R/shrinkage_t_test.R")
@@ -47,7 +45,7 @@ compute_shrink_on_group <- function(groupdf) {
   dat_con2 <- as.matrix(df_shrink[, , 2])
 
   as.data.frame(shrinkage_t_test(
-    dat_con1, dat_con2, num_boot = 100, cov.equal = TRUE,
+    dat_con1, dat_con2, num_boot = 100, cov_equal = TRUE,
     boot_denom_eps = boot_denom_eps, verbose = FALSE
   ))
 }
@@ -69,7 +67,8 @@ compute_contingency_tables <- function(report, alpha = 0.05) {
 
   for (i in 1:(length(conditions) - 1)) {
     report_twoconds <- report %>%
-      filter(condition == conditions[1] | condition == conditions[i + 1])
+      filter(.data$condition == conditions[1] |
+               .data$condition == conditions[i + 1])
 
     # Run paired t-test
     df_paired <- report_twoconds %>%
@@ -82,7 +81,7 @@ compute_contingency_tables <- function(report, alpha = 0.05) {
                                       "Log10NormalizedPeakArea.y")
 
     result_paired0 <- df_paired %>%
-      group_by(experiment, protein_id, precursor_id) %>%
+      group_by(.data$experiment, .data$protein_id, .data$precursor_id) %>%
       group_modify(~compute_paired_on_group(.x)) %>%
       as.data.frame()
 
@@ -90,9 +89,10 @@ compute_contingency_tables <- function(report, alpha = 0.05) {
 
     # Run independent t-test
     df_indep <- report_twoconds %>%
-      group_by(experiment, protein_id, precursor_id, replicate, condition) %>%
+      group_by(.data$experiment, .data$protein_id, .data$precursor_id,
+               .data$replicate, .data$condition) %>%
       summarise(log10_peptide_quantity =
-                  log10(sum(fragment_peak_area, na.rm = TRUE))) %>%
+                  log10(sum(.data$fragment_peak_area, na.rm = TRUE))) %>%
       cast(experiment + protein_id + precursor_id + replicate ~ condition,
            value = "log10_peptide_quantity", fun.aggregate = mean, na.rm = TRUE)
 
@@ -100,7 +100,7 @@ compute_contingency_tables <- function(report, alpha = 0.05) {
                                      "Log10Quantity.y")
 
     result_indep0 <- df_indep %>%
-      group_by(experiment, protein_id, precursor_id) %>%
+      group_by(.data$experiment, .data$protein_id, .data$precursor_id) %>%
       group_modify(~compute_indep_on_group(.x)) %>%
       as.data.frame()
 
@@ -108,7 +108,7 @@ compute_contingency_tables <- function(report, alpha = 0.05) {
 
     # Run shrinkage t-test
     result_shrink0 <- report_twoconds %>%
-      group_by(experiment, protein_id, precursor_id) %>%
+      group_by(.data$experiment, .data$protein_id, .data$precursor_id) %>%
       group_modify(~compute_shrink_on_group(.x)) %>%
       as.data.frame()
 
