@@ -1,40 +1,127 @@
-#' Normalize values to standard normal distribution over sliding windows 
-#' 
+#' Normalize values to standard normal distribution over sliding windows
+#'
 #' @param values_df data frame with value_column and sliding_column
 #' @param value_column name of the value column
 #' @param sliding_column name of the score column that sliding window runs over
-#' @return data frame with normalized values
+#' @param window_size window size for sliding column with which an empirical
+#' cdf is estimated
+#' @param step_size step size for sliding column for which corresponding
+#' value_column is normalized
+#' @param reconstruct If TRUE, the normalized_value_column takes the robust mean
+#' and robust standard deviation of the original value_column. If FALSE, the
+#' mean and standard deviation are set to 0 and 1.
+#' @param use_logvalues If TRUE, the value column is log10-transformed,
+#' normalized, and then transformed back to the original exponential scale.
+#' @param normalized_value_column name of the normalized value column
+#' @return data frame with normalized values set in the normalized_value_column
 sw_normalize_values_df <- function(
-    values_df, value_column = "value", sliding_column = "score",
-    window_size = 100000, step_size = 50000
+  values_df, value_column = "value", sliding_column = "score",
+  window_size = 100000, step_size = 50000, reconstruct = TRUE,
+  use_logvalues = TRUE, normalized_value_column = "normalized_value"
 ) {
   data_size <- nrow(values_df)
-    
+
   if (window_size > data_size) {
     window_size <- data_size
   }
-  
+
   # Sort by score in increasing order: sorted_values_df
   sliding_order <- order(values_df[[sliding_column]])
   sorted_values_df <- values_df[sliding_order, ]
-  sorted_values_original <- sorted_values_df[[value_column]]
-  
+  sorted_values_df[[normalized_value_column]] <-
+    sorted_values_df[[value_column]]
+
+  if (use_logvalues) {
+    sorted_values_df[[normalized_value_column]] <-
+      log10(sorted_values_df[[normalized_value_column]])
+  }
+
+  sorted_values_original <- sorted_values_df[[normalized_value_column]]
+
   # Update values in sorted_values_df
   for (r in seq(1, data_size, step_size)) {
-      id_window_start <- max(1, r + step_size / 2 - window_size / 2)
-      id_window_end <- min(data_size, r + step_size / 2 + window_size / 2 - 1)
-      y_sorted <- sort(sorted_values_original[id_window_start : id_window_end])
-      cdf <- stepfun(y_sorted, seq(0, 1, 1 / length(y_sorted)))
-      
-      id_end <- min(data_size, r + step_size - 1)
-      sorted_values_df[[value_column]][r : id_end] <- qnorm(
-        cdf(sorted_values_df[[value_column]][r : id_end])
-      )
+    id_window_start <- max(1, r + step_size / 2 - window_size / 2)
+    id_window_end <- min(data_size, r + step_size / 2 + window_size / 2 - 1)
+    y_sorted <- sort(sorted_values_original[id_window_start : id_window_end])
+    cdf <- stepfun(y_sorted,
+                   (0 : length(y_sorted)) / (length(y_sorted) + 0.0001))
+
+    id_end <- min(data_size, r + step_size - 1)
+    values_original <- sorted_values_df[[normalized_value_column]][r : id_end]
+    sorted_values_df[[normalized_value_column]][r : id_end] <- qnorm(
+      cdf(values_original)
+    )
+
+    if (reconstruct) {
+      mn <- median(values_original, na.rm = TRUE)
+      std <- IQR(values_original) / (qnorm(0.75) - qnorm(0.25))
+      sorted_values_df[[normalized_value_column]][r : id_end] <- mn +
+        std * sorted_values_df[[normalized_value_column]][r : id_end]
+    }
   }
-  
+
   # Sort back to the original order
   reverse_sliding_order <- order(sliding_order)
   sorted_values_df <- sorted_values_df[reverse_sliding_order, ]
-  
+
+  if (use_logvalues) {
+    sorted_values_df[[normalized_value_column]] <-
+      10 ** sorted_values_df[[normalized_value_column]]
+  }
+
   return(sorted_values_df)
-} 
+}
+
+#' Normalize values to standard normal distribution by category
+#'
+#' @param values_df data frame with value_column and category_column
+#' @param value_column name of the value column
+#' @param category_column name of the category column
+#' @param reconstruct If TRUE, the normalized_value_column takes the robust mean
+#' and robust standard deviation of the original value_column. If FALSE, the
+#' mean and standard deviation are set to 0 and 1.
+#' @param use_logvalues If TRUE, the value column is log10-transformed,
+#' normalized, and then transformed back to the original exponential scale.
+#' @param normalized_value_column name of the normalized value column
+#' @return data frame with normalized values set in the new column
+ca_normalize_values_df <- function(
+  values_df, value_column = "value", category_column = "condition",
+  reconstruct = TRUE, use_logvalues = TRUE,
+  normalized_value_column = "normalized_value"
+) {
+  values_df[[normalized_value_column]] <- values_df[[value_column]]
+
+  # Get a list of categories
+  categories <- unique(values_df[[category_column]])
+
+  if (use_logvalues) {
+    values_df[[normalized_value_column]] <-
+      log10(values_df[[normalized_value_column]])
+  }
+
+  # Update values in values_df
+  for (ca in categories) {
+    y <- values_df[[normalized_value_column]][
+      values_df[[category_column]] == ca
+    ]
+    cdf <- stepfun(sort(y), (0 : length(y)) / (length(y) + 0.0001))
+    values_df[[normalized_value_column]][values_df[[category_column]] == ca] <-
+      qnorm(cdf(y))
+
+    if (reconstruct) {
+      mn <- median(y, na.rm = TRUE)
+      std <- IQR(y) / (qnorm(0.75) - qnorm(0.25))
+      values_df[[normalized_value_column]][
+        values_df[[category_column]] == ca
+      ] <- mn + std *
+        values_df[[normalized_value_column]][values_df[[category_column]] == ca]
+    }
+  }
+
+  if (use_logvalues) {
+    values_df[[normalized_value_column]] <-
+      10 ** values_df[[normalized_value_column]]
+  }
+
+  return(values_df)
+}
