@@ -85,7 +85,8 @@ compute_contingency_tables <- function(report, alpha = 0.05) {
       group_modify(~compute_paired_on_group(.x)) %>%
       as.data.frame()
 
-    tab_paired0 <- table(result_paired0$p.value < alpha)
+    tab_paired0 <- data.frame(table(result_paired0$p.value < alpha))
+    names(tab_paired0) <- c("Rejected", "paired")
 
     # Run independent t-test
     df_indep <- report_twoconds %>%
@@ -104,7 +105,8 @@ compute_contingency_tables <- function(report, alpha = 0.05) {
       group_modify(~compute_indep_on_group(.x)) %>%
       as.data.frame()
 
-    tab_indep0 <- table(result_indep0$p.value < alpha)
+    tab_indep0 <- data.frame(table(result_indep0$p.value < alpha))
+    names(tab_indep0) <- c("Rejected", "independent")
 
     # Run shrinkage t-test
     result_shrink0 <- report_twoconds %>%
@@ -112,7 +114,8 @@ compute_contingency_tables <- function(report, alpha = 0.05) {
       group_modify(~compute_shrink_on_group(.x)) %>%
       as.data.frame()
 
-    tab_shrink0 <- table(result_shrink0$p.value < alpha)
+    tab_shrink0 <- data.frame(table(result_shrink0$p.value < alpha))
+    names(tab_shrink0) <- c("Rejected", "shrinkage")
 
     # Collect analysis results
     result_paired[[i]] <- result_paired0
@@ -120,16 +123,14 @@ compute_contingency_tables <- function(report, alpha = 0.05) {
     result_shrink[[i]] <- result_shrink0
 
     # Collect contingency tables
-    base_tab <- data.frame(Var1 = c(FALSE, TRUE))
+    base_tab <- data.frame(Rejected = c(FALSE, TRUE))
 
     tab_result0 <- base_tab %>%
-      merge(tab_paired0, by = "Var1", all = TRUE) %>%
-      merge(tab_indep0, by = "Var1", all = TRUE) %>%
-      merge(tab_shrink0, by = "Var1", all = TRUE)
+      merge(tab_paired0, by = "Rejected", all = TRUE) %>%
+      merge(tab_indep0, by = "Rejected", all = TRUE) %>%
+      merge(tab_shrink0, by = "Rejected", all = TRUE)
 
     tab_result0[is.na(tab_result0)] <- 0
-
-    colnames(tab_result0) <- c("", "paired", "independent", "shrink")
 
     tab_result[[i]] <- tab_result0
   }
