@@ -1,17 +1,17 @@
-## Load required libraries
 library(dplyr)
 library(corpcor)
 library(reshape)
 library(boot)
 
-
-## Load required functions
 source("../../R/independent_t_test.R")
 source("../../R/paired_t_test.R")
 source("../../R/shrinkage_t_test.R")
 
 
-## Define wrapper functions
+#' Wrapper function for paired t-test
+#'
+#' @param groupdf A subset of fragment ion report which contains two columns for
+#' log10-transformed fragment ion quantities of conditions 1 and 2
 compute_paired_on_group <- function(groupdf) {
   as.data.frame(
     paired_t_test(
@@ -22,6 +22,11 @@ compute_paired_on_group <- function(groupdf) {
   )
 }
 
+
+#' Wrapper function for independent samples t-test
+#'
+#' @param groupdf A subset of precursor report which contains two columns for
+#' log10-transformed precursor quantities of conditions 1 and 2
 compute_indep_on_group <- function(groupdf) {
   as.data.frame(
     independent_t_test(
@@ -32,10 +37,12 @@ compute_indep_on_group <- function(groupdf) {
   )
 }
 
-compute_shrink_on_group <- function(groupdf) {
-  boot_denom_eps <- 0.5
 
-  ## groupdf consists of two conditions
+#' Wrapper function for shrinkage t-test
+#'
+#' @param groupdf A subset of precursor report which consists of two conditions
+#' @param boot_denom_eps A parameter for shrinkage t-test
+compute_shrink_on_group <- function(groupdf, boot_denom_eps = 0.5) {
   df_shrink <- groupdf %>%
     cast(replicate ~ fragment_id ~ condition,
          value = "log10_fragment_peak_area",
@@ -59,7 +66,9 @@ compute_shrink_on_group <- function(groupdf) {
 #' @param report fragment ion report with the columns experiment, condition,
 #' replicate, protein_id, precursor_id, precursor_quantity, fragment_id,
 #' fragment_peak_area.
-compute_contingency_tables <- function(report, alpha = 0.05) {
+compute_contingency_tables <- function(
+  report, alpha = 0.05, boot_denom_eps = 0.5
+) {
   conditions <- unique(report$condition)
   report[["log10_fragment_peak_area"]] <- log10(report[["fragment_peak_area"]])
 
@@ -111,7 +120,11 @@ compute_contingency_tables <- function(report, alpha = 0.05) {
     # Run shrinkage t-test
     result_shrink0 <- report_twoconds %>%
       group_by(.data$experiment, .data$protein_id, .data$precursor_id) %>%
-      group_modify(~compute_shrink_on_group(.x)) %>%
+      group_modify(
+        ~compute_shrink_on_group(
+          .x, boot_denom_eps = boot_denom_eps
+        )
+      ) %>%
       as.data.frame()
 
     tab_shrink0 <- data.frame(table(result_shrink0$p.value < alpha))
@@ -139,4 +152,40 @@ compute_contingency_tables <- function(report, alpha = 0.05) {
               result_indep = result_indep,
               result_shrink = result_shrink,
               table = tab_result))
+}
+
+
+#' Generate random samples from a mixture of Beta distributions
+#'
+#' @param n  number of observations
+#' @param shape1s,shape2s  vectors of non-negative parameters of component
+#' beta distributions. Length of each vector is the number of component beta
+#' distributions.
+rbetamixture <- function(n, shape1s = 1, shape2s = 1) {
+  # Number of beta components
+  n_beta1 <- length(shape1s)
+  n_beta2 <- length(shape2s)
+  if ((n_beta1 == 1) && (n_beta2 > 1)) {
+    shape1s <- rep(shape1s, n_beta2)
+    n_beta1 <- n_beta2
+  }
+  if ((n_beta1 > 1) && (n_beta2 == 1)) {
+    shape2s <- rep(shape2s, n_beta1)
+    n_beta2 <- n_beta1
+  }
+  if (n_beta1 != n_beta2) {
+    stop("Lengths of shape1s and shape2s must equal.")
+  }
+
+  # Select beta components
+  id_components <- sample(n_beta1, size = n, replace = TRUE)
+
+  # Sample from the selected beta components
+  out <- rep(-1, n)
+  for (i in 1 : n) {
+    id <- id_components[i]
+    out[i] <- rbeta(1, shape1s[id], shape2s[id])
+  }
+
+  return(out)
 }
