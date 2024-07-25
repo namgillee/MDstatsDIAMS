@@ -22,6 +22,9 @@
 # Load packages
 require(dirmult)
 
+source("../../R/utils.R")
+
+
 # Set parameters for sampling distributions
 default_params <- list(
   # Prefixes for run files
@@ -43,7 +46,9 @@ default_params <- list(
   prec_mean_std = 0.1,
 
   # Sampling of data acquisition rate from Beta distribution
-  acquisition_beta = c(2.0, 101.0),
+  acquisition_beta_fnt = rbetamixture,
+  acquisition_beta_shape1 = (1 : 20) + 1,
+  acquisition_beta_shape2 = 9 * (1 : 20) + 1,
 
   # Sampling of noise from Normal distribution with the mean of zero
   noise_std = 0.1,
@@ -57,7 +62,7 @@ default_params$prec_mean_condition_shift <-
 
 
 #' Generate a simulated fragment ion report
-simulate_fragment_ion_report <- function(params, seed = 555) {
+simulate_fragment_ion_report <- function(params, seed = 100) {
   set.seed(seed)
 
   n_experiment <- params[["n_experiment"]]
@@ -97,17 +102,16 @@ simulate_fragment_ion_report <- function(params, seed = 555) {
     rep(mu_values_exp, each = n_condition) +
     rep(params[["prec_mean_condition_shift"]], times = n_experiment)
   ### data acquisition rates for each experiment * condition
-  w0_values_cond <- c()
-  for (a0 in seq(params[["acquisition_beta"]][1],
-                 params[["acquisition_beta"]][2],
-                 length.out = n_experiment)) {
-    w0_values_cond <- c(
-      w0_values_cond,
-      rbeta(n_condition,
-            shape1 = a0,
-            shape2 = (4 * log10(a0 - 1) + 1) * (a0 - 1) + 1)
+  w0_values_cond <- matrix(nrow = n_condition, ncol = n_experiment)
+  rbeta_fnt <- params[["acquisition_beta_fnt"]]
+  for (id_cond in 1:n_condition) {
+    w0_values_cond[id_cond, ] <- rbeta_fnt(
+      n_experiment,
+      params[["acquisition_beta_shape1"]],
+      params[["acquisition_beta_shape2"]]
     )
   }
+  dim(w0_values_cond) <- NULL
 
   ## 2) Generate estimated precursor quantity
   ### noise for each replicate

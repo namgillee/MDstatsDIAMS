@@ -131,3 +131,10 @@ dmypy.json
 
 # RStudio
 *.Rproj
+
+# Data and output files
+*.xls
+*.parquet
+*.html
+*.pdf
+*.RData
