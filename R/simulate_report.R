@@ -38,7 +38,7 @@ default_params <- list(
 
   # Numbers of samples
   n_experiment = 100,
-  n_condition = 6,
+  n_condition = 5,
   n_replicate = 4,
 
   # Sampling of precursor mean quantity from Normal distribution
@@ -54,7 +54,8 @@ default_params <- list(
   noise_std = 0.1,
 
   # Sampling of ionization efficiency from Dirichlet distribution
-  ionization_dirichet = c(1, 1, 1)
+  ionization_dirichlet_fnt = rdirichlet,
+  ionization_dirichlet_alpha = c(2, 2, 2)
 )
 
 default_params$prec_mean_condition_shift <-
@@ -68,7 +69,7 @@ simulate_fragment_ion_report <- function(params, seed = 100) {
   n_experiment <- params[["n_experiment"]]
   n_condition <- params[["n_condition"]]
   n_replicate <- params[["n_replicate"]]
-  n_fragment <- length(params[["ionization_dirichet"]])
+  n_fragment <- length(params[["ionization_dirichlet_alpha"]])
 
   if (length(params[["prec_mean_condition_shift"]]) != n_condition) {
     print(paste("!! The parameter prec_mean_condition_shift must contain",
@@ -132,9 +133,10 @@ simulate_fragment_ion_report <- function(params, seed = 100) {
   )
 
   ## 3) Fragment peak area
-  w1_values <- c(t(rdirichlet(
+  rdirichlet_fnt <- params[["ionization_dirichlet_fnt"]]
+  w1_values <- c(t(rdirichlet_fnt(
     n_experiment * n_condition * n_replicate,
-    params[["ionization_dirichet"]]
+    params[["ionization_dirichlet_alpha"]]
   )))
   fragment_peak_area <- precursor_quantity * w1_values
   fragment_peak_area <- pmax(fragment_peak_area, 1)

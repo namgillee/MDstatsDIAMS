@@ -58,26 +58,32 @@ compute_shrink_on_group <- function(groupdf, boot_denom_eps = 0.5) {
 }
 
 
-#' Compare performance of t-test methods
+#' Run t-test methods
 #'
-#' Compute contingency tables for the pairwise comparisons: 1-2, 1-3, ..., 1-C.
+#' Run t-test methods for the pairwise comparisons: 1-2, 1-3, ..., 1-C.
 #' Each pairwise comparisons are performed on each
 #' experiment x protein_id x precursor_id.
 #' @param report fragment ion report with the columns experiment, condition,
 #' replicate, protein_id, precursor_id, precursor_quantity, fragment_id,
 #' fragment_peak_area.
-compute_contingency_tables <- function(
-  report, alpha = 0.05, boot_denom_eps = 0.5
-) {
+#' @param boot_denom_eps a parameter for shrinkage t-test
+#' @return list of analysis results of three t-test methods, where the result of
+#' each method is a list for the pairwise comparisons.
+run_ttests <- function(report, boot_denom_eps = 0.5) {
   conditions <- unique(report$condition)
+  n_con <- length(conditions)
   report[["log10_fragment_peak_area"]] <- log10(report[["fragment_peak_area"]])
 
-  result_paired <- result_indep <- result_shrink <- tab_result <- list()
+  result_paired <- result_indep <- result_shrink <- vector("list", n_con - 1)
+  names(result_paired) <- names(result_indep) <- names(result_shrink) <-
+    paste0(conditions[1], "/", conditions[2 : n_con])
 
-  for (i in 1:(length(conditions) - 1)) {
+  con1 <- conditions[1]
+  for (con2 in conditions[2 : n_con]) {
+    id <- paste0(con1, "/", con2)
+
     report_twoconds <- report %>%
-      filter(.data$condition == conditions[1] |
-               .data$condition == conditions[i + 1])
+      filter(.data$condition == con1 | .data$condition == con2)
 
     # Run paired t-test
     df_paired <- report_twoconds %>%
@@ -93,9 +99,6 @@ compute_contingency_tables <- function(
       group_by(.data$experiment, .data$protein_id, .data$precursor_id) %>%
       group_modify(~compute_paired_on_group(.x)) %>%
       as.data.frame()
-
-    tab_paired0 <- data.frame(table(result_paired0$p.value < alpha))
-    names(tab_paired0) <- c("Rejected", "paired")
 
     # Run independent t-test
     df_indep <- report_twoconds %>%
@@ -114,9 +117,6 @@ compute_contingency_tables <- function(
       group_modify(~compute_indep_on_group(.x)) %>%
       as.data.frame()
 
-    tab_indep0 <- data.frame(table(result_indep0$p.value < alpha))
-    names(tab_indep0) <- c("Rejected", "independent")
-
     # Run shrinkage t-test
     result_shrink0 <- report_twoconds %>%
       group_by(.data$experiment, .data$protein_id, .data$precursor_id) %>%
@@ -127,31 +127,56 @@ compute_contingency_tables <- function(
       ) %>%
       as.data.frame()
 
-    tab_shrink0 <- data.frame(table(result_shrink0$p.value < alpha))
-    names(tab_shrink0) <- c("Rejected", "shrinkage")
-
     # Collect analysis results
-    result_paired[[i]] <- result_paired0
-    result_indep[[i]] <- result_indep0
-    result_shrink[[i]] <- result_shrink0
-
-    # Collect contingency tables
-    base_tab <- data.frame(Rejected = c(FALSE, TRUE))
-
-    tab_result0 <- base_tab %>%
-      merge(tab_paired0, by = "Rejected", all = TRUE) %>%
-      merge(tab_indep0, by = "Rejected", all = TRUE) %>%
-      merge(tab_shrink0, by = "Rejected", all = TRUE)
-
-    tab_result0[is.na(tab_result0)] <- 0
-
-    tab_result[[i]] <- tab_result0
+    result_paired[[id]] <- result_paired0
+    result_indep[[id]] <- result_indep0
+    result_shrink[[id]] <- result_shrink0
   }
 
-  return(list(result_paired = result_paired,
-              result_indep = result_indep,
-              result_shrink = result_shrink,
-              table = tab_result))
+  return(list(paired = result_paired,
+              independent = result_indep,
+              shrinkage = result_shrink))
+}
+
+
+#' Compute contingency tables
+#'
+#' Compute contingency tables based on the results of running t-test methods.
+#' @param results_run_ttests results of run_ttest function, which is a list of
+#' analysis results of each method.
+#' @param alpha significance level
+compute_contingency_tables <- function(results_run_ttests, alpha = 0.05) {
+  id_methods <- names(results_run_ttests)
+  id_comparisons <- names(results_run_ttests[[1]])
+
+  tab_result <- vector("list", length(id_comparisons))
+  names(tab_result) <- id_comparisons
+
+  for (id in id_comparisons) {
+    tab_result_comparison <- data.frame(Rejected = c(FALSE, TRUE))
+
+    for (method in id_methods) {
+      result_method <- results_run_ttests[[method]]
+
+      # Compute contingency tables of every methods
+      tab_method_comparison <- data.frame(
+        table(
+          result_method[[id]]$p.value < alpha
+        )
+      )
+      names(tab_method_comparison) <- c("Rejected", method)
+
+      # Collect contingency tables
+      tab_result_comparison <- tab_result_comparison %>%
+        merge(tab_method_comparison, by = "Rejected", all = TRUE)
+    }
+
+    tab_result_comparison[is.na(tab_result_comparison)] <- 0
+
+    tab_result[[id]] <- tab_result_comparison
+  }
+
+  return(tab_result)
 }
 
 

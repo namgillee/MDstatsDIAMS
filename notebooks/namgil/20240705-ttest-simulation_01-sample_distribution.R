@@ -64,13 +64,10 @@ lines(density(log10(w0), adjust = 2), col = 2, lwd = 2, lty = 2)
 dev.off()
 
 
-## Normalization Algorithm
-# 1) Stratify data by precursor groups; They can be by
-#.   - Condition (not recommended in real data),
-#.   - Qvalue
-# 2) Compute group mean, group std (robust std is proportional to IQR)
-# 3) Normalize each group
-# 4) Change its mean and std by the previous values
+## CA (category) Normalization
+## 1) log10-transformed precursor quantity is grouped by condition;
+## 2) transform to standard normal distribution; and then
+## 3) transform its mean and std by the robust mean and std
 
 normalized_report <- ca_normalize_values_df(
   report, value_column = "precursor_quantity", category_column = "condition",
@@ -88,10 +85,11 @@ yn <- log10(normalized_report[["normalized_precursor_quantity"]][
   normalized_report$condition == "CON1" &
     normalized_report$fragment_id == "FRAG1"
 ])
-plot(density(y, adjust = 2), type = "l", lty = 1, col = 1, lwd = 2,
-     ylim = c(0, 2), main = "", ylab = "Empirical Distribution",
+hist(y, 20, freq = FALSE, ylim = c(0, 2.1), main = "",
+     ylab = "Empirical Distribution",
      xlab = "Precursor Quantity, log10", cex.lab = 1.4)
-lines(density(yn, adjust = 2), type = "l", lty = 2, col = 2, lwd = 2)
+lines(density(y, adjust = 1), lty = 1, col = 1, lwd = 2)
+lines(density(yn, adjust = 1), type = "l", lty = 2, col = 2, lwd = 2)
 legend("topright", legend = c("Before Normalization", "After Normalization"),
        lty = c(1, 2), col = c(1, 2), lwd = c(2, 2))
 dev.off()
