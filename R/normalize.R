@@ -13,11 +13,14 @@
 #' @param use_logvalues If TRUE, the value column is log10-transformed,
 #' normalized, and then transformed back to the original exponential scale.
 #' @param normalized_value_column name of the normalized value column
+#' @param normalization_factor_column name of the normalization factor column
 #' @return data frame with normalized values set in the normalized_value_column
 sw_normalize_values_df <- function(
-  values_df, value_column = "value", sliding_column = "score",
+  values_df, value_column = "precursor_quantity", sliding_column = "score",
   window_size = 100000, step_size = 50000, reconstruct = TRUE,
-  use_logvalues = TRUE, normalized_value_column = "normalized_value"
+  use_logvalues = TRUE, 
+  normalized_value_column = "normalized_precursor_quantity",
+  normalization_factor_column = "normalization_factor"
 ) {
   data_size <- nrow(values_df)
 
@@ -40,12 +43,14 @@ sw_normalize_values_df <- function(
 
   # Update values in sorted_values_df
   for (r in seq(1, data_size, step_size)) {
+    # Estimate CDF using a window
     id_window_start <- max(1, r + step_size / 2 - window_size / 2)
     id_window_end <- min(data_size, r + step_size / 2 + window_size / 2 - 1)
     y_sorted <- sort(sorted_values_original[id_window_start : id_window_end])
     cdf <- stepfun(y_sorted,
                    (0 : length(y_sorted)) / (length(y_sorted) + 0.0001))
 
+    # Transform
     id_end <- min(data_size, r + step_size - 1)
     values_original <- sorted_values_df[[normalized_value_column]][r : id_end]
     sorted_values_df[[normalized_value_column]][r : id_end] <- qnorm(
@@ -53,8 +58,9 @@ sw_normalize_values_df <- function(
     )
 
     if (reconstruct) {
-      mn <- median(values_original, na.rm = TRUE)
-      std <- IQR(values_original) / (qnorm(0.75) - qnorm(0.25))
+      y_quantiles <- quantile(values_original, c(0.05, 0.95), na.rm = TRUE)
+      mn <- mean(y_quantiles)
+      std <- diff(y_quantiles) / (qnorm(0.95) - qnorm(0.05))
       sorted_values_df[[normalized_value_column]][r : id_end] <- mn +
         std * sorted_values_df[[normalized_value_column]][r : id_end]
     }
@@ -69,25 +75,32 @@ sw_normalize_values_df <- function(
       10 ** sorted_values_df[[normalized_value_column]]
   }
 
+  sorted_values_df[[normalization_factor_column]] <-
+    sorted_values_df[[normalized_value_column]] /
+    sorted_values_df[[value_column]]
+
   return(sorted_values_df)
 }
+
 
 #' Normalize values to standard normal distribution by category
 #'
 #' @param values_df data frame with value_column and category_column
 #' @param value_column name of the value column
 #' @param category_column name of the category column
-#' @param reconstruct If TRUE, the normalized_value_column takes the robust mean
-#' and robust standard deviation of the original value_column. If FALSE, the
-#' mean and standard deviation are set to 0 and 1.
+#' @param reconstruct If TRUE, the normalized_value_column is transformed to
+#' take the robust mean and robust standard deviation of the value_column.
+#' If FALSE, the mean and standard deviation are set to 0 and 1.
 #' @param use_logvalues If TRUE, the value column is log10-transformed,
 #' normalized, and then transformed back to the original exponential scale.
 #' @param normalized_value_column name of the normalized value column
+#' @param normalization_factor_column name of the normalization factor column
 #' @return data frame with normalized values set in the new column
 ca_normalize_values_df <- function(
-  values_df, value_column = "value", category_column = "condition",
+  values_df, value_column = "precursor_quantity", category_column = "condition",
   reconstruct = TRUE, use_logvalues = TRUE,
-  normalized_value_column = "normalized_value"
+  normalized_value_column = "normalized_precursor_quantity",
+  normalization_factor_column = "normalization_factor"
 ) {
   values_df[[normalized_value_column]] <- values_df[[value_column]]
 
@@ -109,8 +122,9 @@ ca_normalize_values_df <- function(
       qnorm(cdf(y))
 
     if (reconstruct) {
-      mn <- median(y, na.rm = TRUE)
-      std <- IQR(y) / (qnorm(0.75) - qnorm(0.25))
+      y_quantiles <- quantile(y, c(0.05, 0.95), na.rm = TRUE)
+      mn <- mean(y_quantiles)
+      std <- diff(y_quantiles) / (qnorm(0.95) - qnorm(0.05))
       values_df[[normalized_value_column]][
         values_df[[category_column]] == ca
       ] <- mn + std *
@@ -122,6 +136,10 @@ ca_normalize_values_df <- function(
     values_df[[normalized_value_column]] <-
       10 ** values_df[[normalized_value_column]]
   }
+
+  values_df[[normalization_factor_column]] <-
+    values_df[[normalized_value_column]] /
+    values_df[[value_column]]
 
   return(values_df)
 }
