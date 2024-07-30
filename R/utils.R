@@ -145,6 +145,9 @@ run_ttests <- function(report, boot_denom_eps = 0.5) {
 #' @param results_run_ttests results of run_ttest function, which is a list of
 #' analysis results of each method.
 #' @param alpha significance level
+#' @return list of contingency tables for every comparisons. Each element of
+#' the list is a table, whose columns are the t-test methods and the rows are
+#' TRUE/FALSE representing whether H0 is rejected or not.
 compute_contingency_tables <- function(results_run_ttests, alpha = 0.05) {
   id_methods <- names(results_run_ttests)
   id_comparisons <- names(results_run_ttests[[1]])
@@ -213,4 +216,73 @@ rbetamixture <- function(n, shape1s = 1, shape2s = 1) {
   }
 
   return(out)
+}
+
+
+#' Line plot for contingency tables
+#'
+#' @param x horizontal coordinates of the line plots
+#' @param tables list contingency tables. Lengths of x and tables must be equal.
+#' @param rejected TRUE if number of rejected hypothesis is plotted in y axis.
+#' @examples
+#' report <- simulate_fragment_ion_report(default_params)
+#' resu <- run_ttests(report, boot_denom_eps = 0.5)
+#' tables <- compute_contingency_tables(resu, alpha = 0.05)
+#' x <- default_params$prec_mean_condition_shift[-c(1, 2)]
+#' line_plot_contingency_tables(
+#'   x, tables[-1], xlab = expression(delta),
+#'   ylab = "1 - Type II error rate", cex.lab = 1.5
+#' )
+line_plot_contingency_tables <- function(x, tables, rejected = TRUE, ...) {
+  name_tables <- names(tables)
+  len_tables <- length(tables)
+  name_methods <- colnames(tables[[1]])[-1]
+  n_methods <- length(name_methods)
+
+  values <- matrix(NA, len_tables, n_methods,
+                   dimnames = list(name_tables, name_methods))
+
+  for (name in name_tables) {
+    a_table <- tables[[name]]
+    for (method in name_methods) {
+      values[name, method] <- a_table[a_table[[1]] == rejected, method]
+    }
+  }
+
+  matplot(x, values, type = "o", lty = 1 : n_methods,
+          col = 1 : n_methods, pch = 1 : n_methods, ...)
+  legend("bottomright", legend = name_methods, lty = 1 : n_methods,
+         col = 1 : n_methods, pch = 1 : n_methods)
+}
+
+
+#' bar plot for contingency tables
+#'
+#' @param tables list contingency tables.
+#' @param rejected TRUE if number of rejected hypothesis is plotted in y axis.
+#' @examples
+#' report <- simulate_fragment_ion_report(default_params)
+#' resu <- run_ttests(report, boot_denom_eps = 0.5)
+#' tables <- compute_contingency_tables(resu, alpha = 0.05)
+#' bar_plot_contingency_tables(
+#'   tables[1], xlab = "Comparison", ylab = "1 - Type I error rate",
+#'   cex.lab = 1.5
+#' )
+bar_plot_contingency_tables <- function(tables, rejected = FALSE, ...) {
+  name_tables <- names(tables)
+  len_tables <- length(tables)
+  name_methods <- colnames(tables[[1]])[-1]
+  n_methods <- length(name_methods)
+
+  values <- matrix(NA, len_tables, n_methods,
+                   dimnames = list(name_tables, name_methods))
+
+  for (name in name_tables) {
+    a_table <- tables[[name]]
+    for (method in name_methods) {
+      values[name, method] <- a_table[a_table[[1]] == rejected, method]
+    }
+  }
+
+  barplot(t(values), beside = TRUE, legend.text = name_methods, ...)
 }
