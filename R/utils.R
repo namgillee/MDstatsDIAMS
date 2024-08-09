@@ -1,4 +1,5 @@
 library(dplyr)
+library(colorspace)
 library(corpcor)
 library(reshape)
 library(boot)
@@ -224,6 +225,10 @@ rbetamixture <- function(n, shape1s = 1, shape2s = 1) {
 #' @param x horizontal coordinates of the line plots
 #' @param tables list contingency tables. Lengths of x and tables must be equal.
 #' @param rejected TRUE if number of rejected hypothesis is plotted in y axis.
+#' @param scale_factor a numeric factor that is multiplied to data values.
+#' @param add_legend If not FALSE, legend is added in the plot
+#' @param legend_coord coordinate of the legend
+#' @param legend_cex cex for the legend
 #' @examples
 #' report <- simulate_fragment_ion_report(default_params)
 #' resu <- run_ttests(report, boot_denom_eps = 0.5)
@@ -233,7 +238,10 @@ rbetamixture <- function(n, shape1s = 1, shape2s = 1) {
 #'   x, tables[-1], xlab = expression(delta),
 #'   ylab = "1 - Type II error rate", cex.lab = 1.5
 #' )
-line_plot_contingency_tables <- function(x, tables, rejected = TRUE, ...) {
+line_plot_contingency_tables <- function(
+  x, tables, rejected = TRUE, scale_factor = 1, add_legend = FALSE,
+  legend_coord = "topright", legend_cex = 1, ...
+) {
   name_tables <- names(tables)
   len_tables <- length(tables)
   name_methods <- colnames(tables[[1]])[-1]
@@ -249,10 +257,18 @@ line_plot_contingency_tables <- function(x, tables, rejected = TRUE, ...) {
     }
   }
 
-  matplot(x, values, type = "o", lty = 1 : n_methods,
-          col = 1 : n_methods, pch = 1 : n_methods, ...)
-  legend("bottomright", legend = name_methods, lty = 1 : n_methods,
-         col = 1 : n_methods, pch = 1 : n_methods)
+  values <- values * scale_factor
+
+  seq_hcl_colors <- rep(2 : 4, ceiling(n_methods / 3))
+  line_types <- rep(1 : 2, each = ceiling(n_methods / 2))
+  pch_types <- c(1, 2, 6, 3, 4, 16, 7 : 10)[1 : n_methods]
+  matplot(x, values, type = "o", lty = line_types,
+          col = seq_hcl_colors, pch = pch_types, ...)
+  
+  if (add_legend != FALSE) {
+    legend(legend_coord, legend = name_methods, lty = line_types,
+           col = seq_hcl_colors, pch = pch_types, cex = legend_cex)
+  }
 }
 
 
@@ -260,6 +276,8 @@ line_plot_contingency_tables <- function(x, tables, rejected = TRUE, ...) {
 #'
 #' @param tables list contingency tables.
 #' @param rejected TRUE if number of rejected hypothesis is plotted in y axis.
+#' @param scale_factor a numeric factor that is multiplied to data values.
+#' @param add_legend If not FALSE, legend is added in the plot
 #' @examples
 #' report <- simulate_fragment_ion_report(default_params)
 #' resu <- run_ttests(report, boot_denom_eps = 0.5)
@@ -268,7 +286,9 @@ line_plot_contingency_tables <- function(x, tables, rejected = TRUE, ...) {
 #'   tables[1], xlab = "Comparison", ylab = "1 - Type I error rate",
 #'   cex.lab = 1.5
 #' )
-bar_plot_contingency_tables <- function(tables, rejected = FALSE, ...) {
+bar_plot_contingency_tables <- function(
+  tables, rejected = FALSE, scale_factor = 1, add_legend = FALSE, ...
+) {
   name_tables <- names(tables)
   len_tables <- length(tables)
   name_methods <- colnames(tables[[1]])[-1]
@@ -284,5 +304,15 @@ bar_plot_contingency_tables <- function(tables, rejected = FALSE, ...) {
     }
   }
 
-  barplot(t(values), beside = TRUE, legend.text = name_methods, ...)
+  values <- values * scale_factor
+
+  seq_hcl_colors <- sequential_hcl(n_methods, "hawaii")
+  barplot(t(values), beside = TRUE, col = seq_hcl_colors, ...)
+
+  if (add_legend != FALSE) {
+    legend_text <- name_methods
+    legend("top", fill = seq_hcl_colors, legend = legend_text,
+           inset = c(0, -0.15), xpd = TRUE, ncol = 2) #horiz = TRUE, 
+  }
+
 }
