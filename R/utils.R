@@ -264,7 +264,7 @@ line_plot_contingency_tables <- function(
   pch_types <- c(1, 2, 6, 3, 4, 16, 7 : 10)[1 : n_methods]
   matplot(x, values, type = "o", lty = line_types,
           col = seq_hcl_colors, pch = pch_types, ...)
-  
+
   if (add_legend != FALSE) {
     legend(legend_coord, legend = name_methods, lty = line_types,
            col = seq_hcl_colors, pch = pch_types, cex = legend_cex)
@@ -312,7 +312,7 @@ bar_plot_contingency_tables <- function(
   if (add_legend != FALSE) {
     legend_text <- name_methods
     legend("top", fill = seq_hcl_colors, legend = legend_text,
-           inset = c(0, -0.17), xpd = TRUE, ncol = 2) #horiz = TRUE, 
+           inset = c(0, -0.17), xpd = TRUE, ncol = 2)
   }
 
 }
