@@ -18,7 +18,7 @@
 sw_normalize_values_df <- function(
   values_df, value_column = "precursor_quantity", sliding_column = "score",
   window_size = 100000, step_size = 50000, reconstruct = TRUE,
-  use_logvalues = TRUE, 
+  use_logvalues = TRUE,
   normalized_value_column = "normalized_precursor_quantity",
   normalization_factor_column = "normalization_factor"
 ) {
