@@ -312,7 +312,7 @@ bar_plot_contingency_tables <- function(
   if (add_legend != FALSE) {
     legend_text <- name_methods
     legend("top", fill = seq_hcl_colors, legend = legend_text,
-           inset = c(0, -0.15), xpd = TRUE, ncol = 2) #horiz = TRUE, 
+           inset = c(0, -0.17), xpd = TRUE, ncol = 2) #horiz = TRUE, 
   }
 
 }
