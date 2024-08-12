@@ -1,24 +1,3 @@
-#' Generate a simulated fragment ion report based on a hierarchical graphical
-#' model
-#'
-#' A fragment ion report consists of the following columns:
-#'   - experiment, condition, replicate, protein_id, precursor_id,
-#'     precursor_quantity, fragment_id, fragment_peak_area
-#'
-#' The precursor_quantity and fragment_peak_area columns are raw values, i.e.,
-#' not log-transformed.
-#'
-#' @examples
-#' report <- simulate_fragment_ion_report(default_params)
-#' x1 <- report[
-#'     report$condition == "CON1" & report$fragment_id == "FRAG1"
-#' ]$precursor_quantity
-#' par(mfrow = c(1,2))
-#' hist(log10(x1), main = "Histogram", xlab = "Precursor Quantity, log10",
-#'      xlim = c(2, 6))
-#' qqnorm(log10(x1))
-#' qqline(log10(x1))
-
 # Load packages
 require(dirmult)
 
@@ -55,14 +34,34 @@ default_params <- list(
 
   # Sampling of ionization efficiency from Dirichlet distribution
   ionization_dirichlet_fnt = rdirichlet,
-  ionization_dirichlet_alpha = c(2, 2, 2)
+  ionization_dirichlet_alpha = c(2, 2, 2),
+  ionization_cor_bet_condition = 0.0
 )
 
 default_params$prec_mean_condition_shift <-
   c(0, 0 : (default_params$n_condition - 2)) * log10(2)
 
 
-#' Generate a simulated fragment ion report
+#' Generate a simulated fragment ion report based on a hierarchical graphical
+#' model
+#'
+#' A fragment ion report consists of the following columns:
+#'   - experiment, condition, replicate, protein_id, precursor_id,
+#'     precursor_quantity, fragment_id, fragment_peak_area
+#'
+#' The precursor_quantity and fragment_peak_area columns are raw values, i.e.,
+#' not log-transformed.
+#'
+#' @examples
+#' report <- simulate_fragment_ion_report(default_params)
+#' x1 <- report[
+#'     report$condition == "CON1" & report$fragment_id == "FRAG1"
+#' ]$precursor_quantity
+#' par(mfrow = c(1,2))
+#' hist(log10(x1), main = "Histogram", xlab = "Precursor Quantity, log10",
+#'      xlim = c(2, 6))
+#' qqnorm(log10(x1))
+#' qqline(log10(x1))
 simulate_fragment_ion_report <- function(params, seed = 100) {
   set.seed(seed)
 
@@ -134,10 +133,38 @@ simulate_fragment_ion_report <- function(params, seed = 100) {
 
   ## 3) Fragment peak area
   rdirichlet_fnt <- params[["ionization_dirichlet_fnt"]]
-  w1_values <- c(t(rdirichlet_fnt(
-    n_experiment * n_condition * n_replicate,
+  ### generate un-correlated w1
+  w1_values <- rdirichlet_fnt(
+    n_replicate * n_condition * n_experiment,
     params[["ionization_dirichlet_alpha"]]
-  )))
+  )
+  ### create correlation in w1 between conditions
+  cor_w1 <- params[["ionization_cor_bet_condition"]]
+  if ((cor_w1 < 0) || (cor_w1 > 1)) {
+    print(
+      paste(
+        "In simulate_fragment_ion_report():",
+        "$ionization_cor_bet_condition must be between 0 and 1.",
+        "But", cor_w1, "is given. Skip creating correlation in w1."
+      )
+    )
+  } else {
+    ### compute weight from correlation in w1 between conditions
+    weight <- (2 * cor_w1 + 1 - sqrt(-(2 * cor_w1 - 1)^2 + 2)) / (4 * cor_w1)
+    ### reshape
+    dim(w1_values) <- c(n_replicate * n_condition, n_experiment * n_fragment)
+    w1_values <- t(w1_values) #n_experiment * n_fragment x n_replicate * n_con..
+    dim(w1_values) <- c(n_experiment * n_fragment * n_replicate, n_condition)
+    ### compute weighted sum of w1 values
+    w1_values <- (1 - weight) * w1_values + weight * w1_values[, 1]
+    ## reshape
+    dim(w1_values) <- c(n_experiment * n_fragment, n_replicate * n_condition)
+    w1_values <- t(w1_values) #n_replicate * n_condition x n_experiment * n_fr..
+    dim(w1_values) <- c(n_replicate * n_condition * n_experiment, n_fragment)
+  }
+  ### reshape
+  w1_values <- c(t(w1_values))
+
   fragment_peak_area <- precursor_quantity * w1_values
   fragment_peak_area <- pmax(fragment_peak_area, 1)
 
