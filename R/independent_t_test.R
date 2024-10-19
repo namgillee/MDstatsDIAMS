@@ -9,8 +9,14 @@
 #' @return list of statistic, df, p.value, and estimate.
 #' @examples
 #' independent_t_test(rnorm(4), rnorm(4))
-independent_t_test <- function(quantity1, quantity2, var_equal = TRUE,
-                               conf_level = 0.95, verbose = FALSE) {
+#' @export
+independent_t_test <- function(
+  quantity1,
+  quantity2,
+  var_equal = TRUE,
+  conf_level = 0.95,
+  verbose = FALSE
+) {
   # missing values
   is_na_x <- is.na(quantity1)
   is_na_y <- is.na(quantity2)

@@ -99,13 +99,13 @@ for (id1 in 1 : (n_conditions - 1)) {
     pretreat.df <- df.filtered %>% 
       filter((R.Condition == conditions[id1]) | 
                (R.Condition == conditions[id2])) 
-    
+
     # Paired t test
-    df.paired <- pretreat.df %>% 
-      cast(PG.ProteinGroups + PG.ProteinNames + EG.ModifiedSequence + 
+    df.paired <- pretreat.df %>%
+      cast(PG.ProteinGroups + PG.ProteinNames + EG.ModifiedSequence +
              R.Replicate + FG.Charge +
-             F.FrgIon + F.FrgLossType + F.Charge ~ R.Condition, 
-           value = "F.Log10NormalizedPeakArea", 
+             F.FrgIon + F.FrgLossType + F.Charge ~ R.Condition,
+           value = "F.Log10NormalizedPeakArea",
            fun.aggregate = mean)
     colnames(df.paired)[c(9,10)] <- c("F.Log10NormalizedPeakArea.x", 
                                       "F.Log10NormalizedPeakArea.y")

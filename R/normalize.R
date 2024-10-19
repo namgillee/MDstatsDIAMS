@@ -1,4 +1,4 @@
-#' Normalize values to standard normal distribution over sliding windows
+#' Normalize values to standard normal distribution by sliding window
 #'
 #' @param values_df data frame with value_column and sliding_column
 #' @param value_column name of the value column
@@ -15,6 +15,7 @@
 #' @param normalized_value_column name of the normalized value column
 #' @param normalization_factor_column name of the normalization factor column
 #' @return data frame with normalized values set in the normalized_value_column
+#' @export
 sw_normalize_values_df <- function(
   values_df, value_column = "precursor_quantity", sliding_column = "score",
   window_size = 100000, step_size = 50000, reconstruct = TRUE,
@@ -96,6 +97,7 @@ sw_normalize_values_df <- function(
 #' @param normalized_value_column name of the normalized value column
 #' @param normalization_factor_column name of the normalization factor column
 #' @return data frame with normalized values set in the new column
+#' @export
 ca_normalize_values_df <- function(
   values_df, value_column = "precursor_quantity", category_column = "condition",
   reconstruct = TRUE, use_logvalues = TRUE,

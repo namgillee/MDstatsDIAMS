@@ -13,12 +13,62 @@ source("../../R/paired_t_test.R")
 source("../../R/shrinkage_t_test.R")
 source("../../R/simulate_report.R")
 
+
+## Generate mean quantities using default params
+
+set.seed(100)
+n_experiment <- 30000
+mu_values_exp <- rnorm(n = n_experiment, mean = 5.0, sd = 0.1)
+
+
+### Large q-value (eg, qvalue > 1e-5)
+w0 <- rbetamixture(n_experiment, 1 * (1 : 20) + 1, 9 * (1 : 20) + 1)
+
+pdf("files/ttest/simulation_01/simulated_w0_histogram_largeq.pdf")
+par(mar = c(5.3, 4.6, 4.1, 2.1))
+hist(w0, breaks = seq(0, 1, 0.02), freq = FALSE, 
+     xlim = c(0, 1), xlab = expression(paste("u"["c"]^"p")),
+     main = expression(paste("Simulated ", "u"["c"]^"p")), 
+     cex.lab = 2.3, cex.main = 2.0)
+dev.off()
+
+pdf("files/ttest/simulation_01/simulated_precursor_mean_qqnorm_largeq.pdf")
+par(mar = c(5.8, 4.8, 4.1, 2.1))
+qqnorm(mu_values_cond + log10(w0),
+       cex.lab = 2.3,
+       cex.main = 2.0,
+       main = "Simulated Mean Peptide Quantity", 
+       cex = 0.5)
+qqline(mu_values_cond + log10(w0))
+dev.off()
+
+
+### Small q-value (eg, qvalue <= 1e-5)
+w0 <- rbetamixture(n_experiment, 1 * (1 : 20) + 1, 9 * (1 : 20) + 1) * 0.8 + 0.2
+
+pdf("files/ttest/simulation_01/simulated_w0_histogram_smallq.pdf")
+par(mar = c(5.3, 4.6, 4.1, 2.1))
+hist(w0, breaks = seq(0, 1, 0.02), freq = FALSE, 
+     xlim = c(0, 1), xlab = expression(paste("u"["c"]^"p")),
+     main = expression(paste("Simulated ", "u"["c"]^"p")), 
+     cex.lab = 2.3, cex.main = 2.0)
+dev.off()
+
+pdf("files/ttest/simulation_01/simulated_precursor_mean_qqnorm_smallq.pdf")
+par(mar = c(5.8, 4.8, 4.1, 2.1))
+qqnorm(mu_values_cond + log10(w0),
+       cex.lab = 2.3,
+       cex.main = 2.0,
+       main = "Simulated Mean Peptide Quantity", 
+       cex = 0.5)
+qqline(mu_values_cond + log10(w0))
+dev.off()
+
+
 ## Generate a sample report
+## SAMPLE PLOT : Create a sample data report and make quantity histogram
 
 report <- simulate_fragment_ion_report(default_params, seed = 100)
-
-
-## SAMPLE PLOT : Create a sample data report and make quantity histogram
 
 pdf(paste0("files/ttest/simulation_01/",
            "simulated_precursor_quantity_histogram_CON1.pdf"), 7, 5)

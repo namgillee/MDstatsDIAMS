@@ -83,9 +83,10 @@ for (i in seq_along(boot_out)) {
 }
 
 pdf("files/ttest/simulation_03/20240726_run01_selection_of_s0.pdf")
-plot(boot_consts, all_median_cv[, 1], ylim = c(-0.6, 1), cex = 0.5,
-     xlab = expression(s[0]),
-     ylab = "Bootstrap CV", cex.lab = 1.5)
+par(mar = c(5.3, 4.6, 4.1, 2.1))
+plot(boot_consts, all_median_cv[, 1], ylim = c(-0.1, 0.7), cex = 0.5,
+     xlab = expression(a[R]),
+     ylab = "Bootstrap CV", cex.lab = 1.7)
 lines(boot_consts, all_median_cv[, 2], col = 1, lty = 1, lwd = 2)
 lines(boot_consts, all_median_cv[, 3], col = 2, lty = 2, lwd = 3)
 legend("topright",
@@ -112,11 +113,12 @@ z_diff_greater_than_eps <- (- rowMeans(z_diff[, 2 : 3]) > eps)
 
 pdf(paste0("files/ttest/simulation_03/",
            "20240726_run01_selection_of_difference_s0.pdf"))
+par(mar = c(5.3, 4.6, 4.1, 2.1))
 plot(boot_consts[-1], - rowMeans(z_diff[, 2 : 3]),
      ylim = c(-0.05, 0.15),
-     xlab = expression(s[0]),
+     xlab = expression(a[R]),
      ylab = "Difference in mean bootstrap CV",
-     cex.lab = 1.5)
+     cex.lab = 1.7)
 abline(h = eps, lty = 2, lwd = 3)
 dev.off()
 
