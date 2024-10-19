@@ -26,5 +26,5 @@ test_results <- run_ttests(report)
 N. Lee, J. Kim, H. Yoo, and H. Yang. 
 A shrinkage-based statistical method for testing group mean differences in 
 quantitative bottom-up proteomics.
-The 23th Conference of Human Proteome Organization (HUPO2024), Dresden,
-Germany, 2024. Poster Presentation.
+The 23th Human Proteome Organization World Congress (HUPO2024), Dresden,
+Germany, October 20--24, 2024. Poster Presentation.
