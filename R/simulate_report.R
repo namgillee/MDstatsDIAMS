@@ -1,10 +1,5 @@
-# Load packages
-require(dirmult)
-
-source("../../R/utils.R")
-
-
-# Set parameters for sampling distributions
+#' Define default parameters for sampling distributions
+#' @export
 default_params <- list(
   # Prefixes for run files
   experiment_prefix = "EXP",
@@ -17,7 +12,7 @@ default_params <- list(
 
   # Numbers of samples
   n_experiment = 100,
-  n_condition = 5,
+  n_condition = 4,
   n_replicate = 4,
 
   # Sampling of precursor mean quantity from Normal distribution
@@ -33,13 +28,13 @@ default_params <- list(
   noise_std = 0.1,
 
   # Sampling of ionization efficiency from Dirichlet distribution
-  ionization_dirichlet_fnt = rdirichlet,
+  ionization_dirichlet_fnt = dirmult::rdirichlet,
   ionization_dirichlet_alpha = c(2, 2, 2),
-  ionization_cor_bet_condition = 0.0
-)
+  ionization_cor_bet_condition = 0.0,
 
-default_params$prec_mean_condition_shift <-
-  c(0, 0 : (default_params$n_condition - 2)) * log10(2)
+  # Mean shift values added to the precursor mean quantity over conditions
+  prec_mean_condition_shift = c(0, 0 : 2) * log10(2)
+)
 
 
 #' Generate a simulated fragment ion report based on a hierarchical graphical
@@ -52,6 +47,9 @@ default_params$prec_mean_condition_shift <-
 #' The precursor_quantity and fragment_peak_area columns are raw values, i.e.,
 #' not log-transformed.
 #'
+#' @param params A list of parameters in the same format as default_params
+#' @param seed An integer for random seed
+#' @return A data frame of a fragment ion report
 #' @examples
 #' report <- simulate_fragment_ion_report(default_params)
 #' x1 <- report[
@@ -62,6 +60,7 @@ default_params$prec_mean_condition_shift <-
 #'      xlim = c(2, 6))
 #' qqnorm(log10(x1))
 #' qqline(log10(x1))
+#' @export
 simulate_fragment_ion_report <- function(params, seed = 100) {
   set.seed(seed)
 
@@ -148,7 +147,7 @@ simulate_fragment_ion_report <- function(params, seed = 100) {
         "But", cor_w1, "is given. Skip creating correlation in w1."
       )
     )
-  } else {
+  } else if ((cor_w1 > 0) && (cor_w1 <= 1)) {
     ### compute weight from correlation in w1 between conditions
     weight <- (2 * cor_w1 + 1 - sqrt(-(2 * cor_w1 - 1)^2 + 2)) / (4 * cor_w1)
     ### reshape

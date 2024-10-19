@@ -6,8 +6,13 @@
 #' @return list of statistic, df, p.value, and estimate.
 #' @examples
 #' paired_t_test(rnorm(10), rnorm(10))
-paired_t_test <- function(quantity1, quantity2,
-                          conf_level = 0.95, verbose = FALSE) {
+#' @export
+paired_t_test <- function(
+  quantity1,
+  quantity2,
+  conf_level = 0.95,
+  verbose = FALSE
+) {
   # check input length
   if (length(quantity1) != length(quantity2)) {
     print("Input vectors must have the same length.")
@@ -28,8 +33,10 @@ paired_t_test <- function(quantity1, quantity2,
     quantity1[!is_na], quantity2[!is_na], paired = TRUE, conf.level = conf_level
   )
   result <- list(
-    statistic = ttest_out$statistic, df = ttest_out$parameter,
-    p.value = ttest_out$p.value, estimate = ttest_out$estimate
+    statistic = ttest_out$statistic,
+    df = ttest_out$parameter,
+    p.value = ttest_out$p.value,
+    estimate = ttest_out$estimate
   )
   return(result)
 }

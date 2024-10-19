@@ -19,6 +19,7 @@
 #'   dat_x = matrix(rnorm(12), 4, 3)
 #'   dat_y = matrix(rnorm(12), 4, 3)
 #'   cov_diff_shrink(dat_x, dat_y)
+#' @export
 cov_diff_shrink <- function(
   dat_con1, dat_con2, lambda_var_con1, lambda_var_con2, cov_equal = FALSE,
   verbose = FALSE
@@ -46,12 +47,12 @@ cov_diff_shrink <- function(
 
   # compute covariance matrix
   suppressWarnings(
-    cov_con1 <- cov.shrink(dat_con1, lambda.var = lambda_var_con1,
-                           verbose = verbose)
+    cov_con1 <- corpcor::cov.shrink(dat_con1, lambda.var = lambda_var_con1,
+                                    verbose = verbose)
   )
   suppressWarnings(
-    cov_con2 <- cov.shrink(dat_con2, lambda.var = lambda_var_con2,
-                           verbose = verbose)
+    cov_con2 <- corpcor::cov.shrink(dat_con2, lambda.var = lambda_var_con2,
+                                    verbose = verbose)
   )
   if (cov_equal) {
     const <- 1 / (num_con1 + num_con2 - 2) * (1 / num_con1 + 1 / num_con2)
@@ -127,7 +128,8 @@ shrinkage_t_test_statistic <- function(
 }
 
 
-#' Shrinkage-based t-test for modified peptide using fragment ion peak area
+#' Shrinkage-based t-test for testing group mean differeneces in peptide mean
+#' quantity using fragment ion peak area
 #'
 #' @param dat_con1,dat_con2  data matrices of normalized fragment ion peak area,
 #'   each row is a replicate, each column is a fragment ion.
@@ -143,6 +145,7 @@ shrinkage_t_test_statistic <- function(
 #'   dat_x = matrix(rnorm(12), 4, 3)
 #'   dat_y = matrix(rnorm(12), 4, 3)
 #'   shrinkage_t_test(dat_x, dat_y)
+#' @export
 shrinkage_t_test <- function(
   dat_con1, dat_con2, num_boot = 100, cov_equal = TRUE, boot_denom_eps = 0.5,
   verbose = FALSE
@@ -172,9 +175,9 @@ shrinkage_t_test <- function(
       boot_denom_eps
     )
   }
-  boot_out <- boot(cbind(dat_con1, dat_con2),
-                   shrinkage_t_statistic_wrapper,
-                   R = num_boot)
+  boot_out <- boot::boot(cbind(dat_con1, dat_con2),
+                         shrinkage_t_statistic_wrapper,
+                         R = num_boot)
   boot_var <- var(as.vector(boot_out$t), na.rm = TRUE)
   result$df <- ifelse(boot_var <= 1, Inf, 2 * boot_var / (boot_var - 1))
   result$p.value <- 2 * (1 - pt(abs(result$statistic), result$df))
