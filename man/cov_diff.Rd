@@ -25,8 +25,3 @@ conditions 1 and 2, respectively. A covariance of diff between fragment ions
    = cov(\bar{x}_{1i}, \bar{x}_{1j}) +
    cov(\bar{x}_{2i}, \bar{x}_{2j})}
 }
-\examples{
-  dat_x <- cbind(1 : 4, c(1, 3, 2, 4), 4 : 1)
-  dat_y <- cbind(4 : 1, c(4, 2, 3, 1), 1 : 4)
-  cov_diff(dat_x, dat_y)
-}

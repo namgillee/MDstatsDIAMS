@@ -13,11 +13,6 @@
 #' in logarithmic scale. Each row is a replicate, each column is a fragment ion.
 #' @param verbose  TRUE to print messages. Default is FALSE.
 #' @return covariance matrix of mean difference
-#' @examples
-#'   dat_x <- cbind(1 : 4, c(1, 3, 2, 4), 4 : 1)
-#'   dat_y <- cbind(4 : 1, c(4, 2, 3, 1), 1 : 4)
-#'   cov_diff(dat_x, dat_y)
-#' @export
 cov_diff <- function(dat_con1, dat_con2, verbose = FALSE) {
   # check number of fragment ions
   if (ncol(dat_con1) != ncol(dat_con2)) {

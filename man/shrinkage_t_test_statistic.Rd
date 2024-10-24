@@ -35,8 +35,3 @@ shrinkage-based t-test statistic
 \description{
 Shrinkage-based t-test statistic
 }
-\examples{
-  dat_x <- cbind(1 : 4, c(1, 3, 2, 4), 4 : 1)
-  dat_y <- cbind(4 : 1, c(4, 2, 3, 1), 1 : 4)
-  shrinkage_t_test_statistic(dat_x, dat_y, TRUE, 0)
-}
