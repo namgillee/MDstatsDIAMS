@@ -14,8 +14,9 @@ cov_diff_shrink(
 )
 }
 \arguments{
-\item{dat_con1, dat_con2}{data matrices of normalized fragment ion peak area,
-each row is a replicate, each column is a fragment ion}
+\item{dat_con1, dat_con2}{data matrices of normalized fragment ion peak area
+in logarithmic scale. Each row is a replicate, each column is a fragment
+ion.}
 
 \item{lambda_var_con1, lambda_var_con2}{the variance shrinkage intensities
 for con1 and con2, respectively. If not specified (default), they are
@@ -30,14 +31,17 @@ covariance matrix is computed.}
 covariance matrix of mean difference
 }
 \description{
-A diff for an ion i is defined by d_{i} = xbar_con1{i} - xbar_con2{i}, where
-xbar_con1 and xbar_con2 are the sample means for condition 1 and 2,
-respectively. A covariance of diff between fragment ion i and j is
-cov(d_{i}, d_{j})
-= cov(xbar_con1{i}, xbar_con1{j}) + cov(xbar_con2{i}, xbar_con2{j})
+A diff for an ion \eqn{i} is defined by
+\eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}}, where
+\eqn{\bar{x}_{1i}} and \eqn{\bar{x}_{1i}} are the sample means for
+conditions 1 and 2, respectively. A covariance of diff between fragment ions
+\eqn{i} and \eqn{j} is
+\deqn{cov(d_i, d_j)
+   = cov(\bar{x}_{1i}, \bar{x}_{1j}) +
+   cov(\bar{x}_{2i}, \bar{x}_{2j})}
 }
 \examples{
-  dat_x = matrix(rnorm(12), 4, 3)
-  dat_y = matrix(rnorm(12), 4, 3)
+  dat_x <- cbind(1 : 4, c(1, 3, 2, 4), 4 : 1)
+  dat_y <- cbind(4 : 1, c(4, 2, 3, 1), 1 : 4)
   cov_diff_shrink(dat_x, dat_y)
 }

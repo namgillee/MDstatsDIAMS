@@ -15,8 +15,9 @@ shrinkage_t_test(
 )
 }
 \arguments{
-\item{dat_con1, dat_con2}{data matrices of normalized fragment ion peak area,
-each row is a replicate, each column is a fragment ion.}
+\item{dat_con1, dat_con2}{data matrices of normalized fragment ion peak area
+in logarithmic scale. Each row is a replicate, each column is a fragment
+ion.}
 
 \item{num_boot}{number of bootstrap replicates. Default is 200.}
 
@@ -37,7 +38,7 @@ Shrinkage-based t-test for testing group mean differeneces in peptide mean
 quantity using fragment ion peak area
 }
 \examples{
-  dat_x = matrix(rnorm(12), 4, 3)
-  dat_y = matrix(rnorm(12), 4, 3)
+  dat_x <- cbind(1 : 4, c(1, 3, 2, 4), 4 : 1)
+  dat_y <- cbind(4 : 1, c(4, 2, 3, 1), 1 : 4)
   shrinkage_t_test(dat_x, dat_y)
 }

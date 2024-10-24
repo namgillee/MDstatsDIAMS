@@ -2,7 +2,7 @@
 % Please edit documentation in R/rbetamixture.R
 \name{rbetamixture}
 \alias{rbetamixture}
-\title{Generate random samples from a mixture of Beta distributions}
+\title{Generate random samples from a mixture of beta distributions}
 \usage{
 rbetamixture(n, shape1s = 1, shape2s = 1)
 }
@@ -11,11 +11,12 @@ rbetamixture(n, shape1s = 1, shape2s = 1)
 
 \item{shape1s, shape2s}{vectors of non-negative parameters of component
 beta distributions. Length of each vector is the number of component beta
-distributions.}
+distributions, where (shape1s\link{i}, shape2s\link{i}) is the parameter for the
+i-th component beta distribution.}
 }
 \value{
 a length-n vector of generated values
 }
 \description{
-Generate random samples from a mixture of Beta distributions
+Generate random samples from a mixture of beta distributions
 }

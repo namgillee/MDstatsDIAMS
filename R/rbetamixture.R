@@ -1,9 +1,10 @@
-#' Generate random samples from a mixture of Beta distributions
+#' Generate random samples from a mixture of beta distributions
 #'
 #' @param n  number of observations
 #' @param shape1s,shape2s  vectors of non-negative parameters of component
 #' beta distributions. Length of each vector is the number of component beta
-#' distributions.
+#' distributions, where (shape1s[i], shape2s[i]) is the parameter for the
+#' i-th component beta distribution.
 #' @return a length-n vector of generated values
 #' @export
 rbetamixture <- function(n, shape1s = 1, shape2s = 1) {

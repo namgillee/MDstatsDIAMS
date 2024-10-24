@@ -12,7 +12,8 @@ compute_shrink_on_group(
 }
 \arguments{
 \item{groupdf}{A subset of precursor report which consists of two conditions.
-It contains columns named "replicate", "fragment_id", "condition".}
+It contains columns named "replicate", "fragment_id", "condition", and
+a value column is for log10-transformed fragment ion quantities.}
 
 \item{boot_denom_eps}{A parameter for shrinkage t-test}
 }

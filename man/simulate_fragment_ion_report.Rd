@@ -29,7 +29,7 @@ not log-transformed.
 \examples{
 report <- simulate_fragment_ion_report(default_params)
 x1 <- report[
-    report$condition == "CON1" & report$fragment_id == "FRAG1"
+  report$condition == "CON1" & report$fragment_id == "FRAG1",
 ]$precursor_quantity
 par(mfrow = c(1,2))
 hist(log10(x1), main = "Histogram", xlab = "Precursor Quantity, log10",

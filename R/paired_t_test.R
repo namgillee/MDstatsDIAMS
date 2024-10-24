@@ -1,11 +1,12 @@
 #' Paired t-test for modified peptide using fragment ion peak area
 #'
 #' @param quantity1,quantity2  numeric vectors of normalized fragment peak area
+#' in logarithmic scale
 #' @param conf_level  Confidence level. Default is 0.95.
 #' @param verbose  TRUE to print messages. Default is FALSE.
 #' @return list of statistic, df, p.value, and estimate.
 #' @examples
-#' paired_t_test(rnorm(10), rnorm(10))
+#' paired_t_test(1 : 4, c(1, 3, 2, 4))
 #' @export
 paired_t_test <- function(
   quantity1,
