@@ -1,13 +1,17 @@
 #' Covariance of diff between each pair of fragment ions based on shrinkage.
 #'
-#' A diff for an ion i is defined by d_{i} = xbar_con1{i} - xbar_con2{i}, where
-#' xbar_con1 and xbar_con2 are the sample means for condition 1 and 2,
-#' respectively. A covariance of diff between fragment ion i and j is
-#'    cov(d_{i}, d_{j})
-#'    = cov(xbar_con1{i}, xbar_con1{j}) + cov(xbar_con2{i}, xbar_con2{j})
+#' A diff for an ion \eqn{i} is defined by
+#' \eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}}, where
+#' \eqn{\bar{x}_{1i}} and \eqn{\bar{x}_{1i}} are the sample means for
+#' conditions 1 and 2, respectively. A covariance of diff between fragment ions
+#' \eqn{i} and \eqn{j} is
+#'    \deqn{cov(d_i, d_j)
+#'    = cov(\bar{x}_{1i}, \bar{x}_{1j}) +
+#'    cov(\bar{x}_{2i}, \bar{x}_{2j})}
 #'
-#' @param dat_con1,dat_con2  data matrices of normalized fragment ion peak area,
-#'   each row is a replicate, each column is a fragment ion
+#' @param dat_con1,dat_con2  data matrices of normalized fragment ion peak area
+#'   in logarithmic scale. Each row is a replicate, each column is a fragment
+#'   ion.
 #' @param lambda_var_con1,lambda_var_con2  the variance shrinkage intensities
 #'   for con1 and con2, respectively. If not specified (default), they are
 #'   estimated by corpcor::cov.shrink function.
@@ -15,11 +19,6 @@
 #'   covariance matrix is computed.
 #' @param verbose  TRUE to print messages. Default is FALSE.
 #' @return covariance matrix of mean difference
-#' @examples
-#'   dat_x = matrix(rnorm(12), 4, 3)
-#'   dat_y = matrix(rnorm(12), 4, 3)
-#'   cov_diff_shrink(dat_x, dat_y)
-#' @export
 cov_diff_shrink <- function(
   dat_con1, dat_con2, lambda_var_con1, lambda_var_con2, cov_equal = FALSE,
   verbose = FALSE
@@ -47,12 +46,14 @@ cov_diff_shrink <- function(
 
   # compute covariance matrix
   suppressWarnings(
-    cov_con1 <- corpcor::cov.shrink(dat_con1, lambda.var = lambda_var_con1,
-                                    verbose = verbose)
+    cov_con1 <- corpcor::cov.shrink(
+      dat_con1, lambda.var = lambda_var_con1, verbose = verbose
+    )
   )
   suppressWarnings(
-    cov_con2 <- corpcor::cov.shrink(dat_con2, lambda.var = lambda_var_con2,
-                                    verbose = verbose)
+    cov_con2 <- corpcor::cov.shrink(
+      dat_con2, lambda.var = lambda_var_con2, verbose = verbose
+    )
   )
   if (cov_equal) {
     const <- 1 / (num_con1 + num_con2 - 2) * (1 / num_con1 + 1 / num_con2)
@@ -79,8 +80,9 @@ cov_diff_shrink <- function(
 
 #' Shrinkage-based t-test statistic
 #'
-#' @param dat_con1,dat_con2  data matrices of normalized fragment ion peak area,
-#'   each row is a replicate, each column is a fragment ion
+#' @param dat_con1,dat_con2  data matrices of normalized fragment ion peak area
+#'   in logarithmic scale. Each row is a replicate, each column is a fragment
+#'   ion.
 #' @param lambda_var_con1,lambda_var_con2  the variance shrinkage intensities
 #'   for con1 and con2, respectively. If not specified (default), they are
 #'   estimated by corpcor::cov.shrink function.
@@ -90,10 +92,6 @@ cov_diff_shrink <- function(
 #'   standard error of the numerator) of the statistic. This constant is useful
 #'   for bootstrapping with a small sample size.
 #' @return shrinkage-based t-test statistic
-#' @examples
-#'   dat_x = matrix(rnorm(12), 4, 3)
-#'   dat_y = matrix(rnorm(12), 4, 3)
-#'   shrinkage_t_test_statistic(dat_x, dat_y, TRUE, 0)
 shrinkage_t_test_statistic <- function(
   dat_con1, dat_con2, cov_equal, denom_eps, lambda_var_con1, lambda_var_con2
 ) {
@@ -131,8 +129,9 @@ shrinkage_t_test_statistic <- function(
 #' Shrinkage-based t-test for testing group mean differeneces in peptide mean
 #' quantity using fragment ion peak area
 #'
-#' @param dat_con1,dat_con2  data matrices of normalized fragment ion peak area,
-#'   each row is a replicate, each column is a fragment ion.
+#' @param dat_con1,dat_con2  data matrices of normalized fragment ion peak area
+#'   in logarithmic scale. Each row is a replicate, each column is a fragment
+#'   ion.
 #' @param num_boot number of bootstrap replicates. Default is 200.
 #' @param cov_equal  TRUE if equal covariance is assumed and a pooled
 #'   covariance matrix is computed. Default is TRUE.
@@ -142,8 +141,8 @@ shrinkage_t_test_statistic <- function(
 #' @param verbose  TRUE to print messages. Default is FALSE.
 #' @return list of statistic, df, p.value, and estimate.
 #' @examples
-#'   dat_x = matrix(rnorm(12), 4, 3)
-#'   dat_y = matrix(rnorm(12), 4, 3)
+#'   dat_x <- cbind(1 : 4, c(1, 3, 2, 4), 4 : 1)
+#'   dat_y <- cbind(4 : 1, c(4, 2, 3, 1), 1 : 4)
 #'   shrinkage_t_test(dat_x, dat_y)
 #' @export
 shrinkage_t_test <- function(
@@ -175,9 +174,9 @@ shrinkage_t_test <- function(
       boot_denom_eps
     )
   }
-  boot_out <- boot::boot(cbind(dat_con1, dat_con2),
-                         shrinkage_t_statistic_wrapper,
-                         R = num_boot)
+  boot_out <- boot::boot(
+    cbind(dat_con1, dat_con2), shrinkage_t_statistic_wrapper, R = num_boot
+  )
   boot_var <- var(as.vector(boot_out$t), na.rm = TRUE)
   result$df <- ifelse(boot_var <= 1, Inf, 2 * boot_var / (boot_var - 1))
   result$p.value <- 2 * (1 - pt(abs(result$statistic), result$df))
@@ -185,8 +184,10 @@ shrinkage_t_test <- function(
   result$cv <- sqrt(boot_var) / boot_mean
 
   result$estimate <-
-    sum(apply(dat_con1, 2, mean, na.rm = TRUE) -
-          apply(dat_con2, 2, mean, na.rm = TRUE), na.rm = TRUE)
+    sum(
+      apply(dat_con1, 2, mean, na.rm = TRUE) -
+        apply(dat_con2, 2, mean, na.rm = TRUE), na.rm = TRUE
+    )
 
   return(result)
 }

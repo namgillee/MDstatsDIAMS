@@ -47,7 +47,8 @@ compute_indep_on_group <- function(
 #' Wrapper function for shrinkage t-test
 #'
 #' @param groupdf A subset of precursor report which consists of two conditions.
-#'   It contains columns named "replicate", "fragment_id", "condition".
+#'   It contains columns named "replicate", "fragment_id", "condition", and
+#'   a value column is for log10-transformed fragment ion quantities.
 #' @param boot_denom_eps A parameter for shrinkage t-test
 #' @return a data frame of the shrinkage t-test results
 #' @export
@@ -79,11 +80,11 @@ compute_shrink_on_group <- function(
 #' Each pairwise comparisons are performed on each
 #' experiment x protein_id x precursor_id.
 #' @param report fragment ion report with the columns experiment, condition,
-#' replicate, protein_id, precursor_id, precursor_quantity, fragment_id,
-#' fragment_peak_area.
+#'   replicate, protein_id, precursor_id, precursor_quantity, fragment_id,
+#'   fragment_peak_area.
 #' @param boot_denom_eps a parameter for shrinkage t-test
 #' @return a list of analysis results of three t-test methods, where the result
-#' of each method is a list for the pairwise comparisons.
+#'   of each method is a list for the pairwise comparisons.
 #' @export
 run_ttests <- function(report, boot_denom_eps = 0.5) {
   conditions <- unique(report$condition)
@@ -111,8 +112,9 @@ run_ttests <- function(report, boot_denom_eps = 0.5) {
         na.rm = TRUE
       )
 
-    colnames(df_paired)[c(6, 7)] <- c("Log10NormalizedPeakArea.x",
-                                      "Log10NormalizedPeakArea.y")
+    colnames(df_paired)[c(6, 7)] <- c(
+      "Log10NormalizedPeakArea.x", "Log10NormalizedPeakArea.y"
+    )
 
     result_paired0 <- df_paired %>%
       dplyr::group_by(
@@ -147,8 +149,9 @@ run_ttests <- function(report, boot_denom_eps = 0.5) {
         na.rm = TRUE
       )
 
-    colnames(df_indep)[c(5, 6)] <- c("Log10Quantity.x",
-                                     "Log10Quantity.y")
+    colnames(df_indep)[c(5, 6)] <- c(
+      "Log10Quantity.x", "Log10Quantity.y"
+    )
 
     result_indep0 <- df_indep %>%
       dplyr::group_by(
@@ -189,11 +192,11 @@ run_ttests <- function(report, boot_denom_eps = 0.5) {
 #'
 #' Compute contingency tables based on the results of running t-test methods.
 #' @param results_run_ttests results of run_ttest function, which is a list of
-#' analysis results of each method.
+#'   analysis results of each method.
 #' @param alpha significance level
 #' @return list of contingency tables for every comparisons. Each element of
-#' the list is a table, whose columns are the t-test methods and the rows are
-#' TRUE/FALSE representing whether H0 is rejected or not.
+#'   the list is a table, whose columns are the t-test methods and the rows are
+#'   TRUE/FALSE representing whether H0 is rejected or not.
 #' @export
 compute_contingency_tables <- function(results_run_ttests, alpha = 0.05) {
   id_methods <- names(results_run_ttests)
@@ -240,14 +243,14 @@ compute_contingency_tables <- function(results_run_ttests, alpha = 0.05) {
 #' @param legend_coord coordinate of the legend
 #' @param legend_cex cex for the legend
 #' @examples
-#' report <- simulate_fragment_ion_report(default_params)
-#' resu <- run_ttests(report, boot_denom_eps = 0.5)
-#' tables <- compute_contingency_tables(resu, alpha = 0.05)
-#' x <- default_params$prec_mean_condition_shift[-c(1, 2)]
-#' line_plot_contingency_tables(
-#'   x, tables[-1], xlab = expression(delta),
-#'   ylab = "1 - Type II error rate", cex.lab = 1.5
-#' )
+#'   report <- simulate_fragment_ion_report(default_params)
+#'   resu <- run_ttests(report, boot_denom_eps = 0.5)
+#'   tables <- compute_contingency_tables(resu, alpha = 0.05)
+#'   x <- default_params$prec_mean_condition_shift[-c(1, 2)]
+#'   line_plot_contingency_tables(
+#'     x, tables[-1], xlab = expression(delta),
+#'     ylab = "1 - Type II error rate", cex.lab = 1.5
+#'   )a
 #' @export
 line_plot_contingency_tables <- function(
   x, tables, rejected = TRUE, scale_factor = 1, add_legend = FALSE,
@@ -258,8 +261,9 @@ line_plot_contingency_tables <- function(
   name_methods <- colnames(tables[[1]])[-1]
   n_methods <- length(name_methods)
 
-  values <- matrix(NA, len_tables, n_methods,
-                   dimnames = list(name_tables, name_methods))
+  values <- matrix(
+    NA, len_tables, n_methods, dimnames = list(name_tables, name_methods)
+  )
 
   for (name in name_tables) {
     a_table <- tables[[name]]
@@ -293,13 +297,13 @@ line_plot_contingency_tables <- function(
 #' @param legend_ncol ncol for the legend
 #' @param legend_cex cex for the legend
 #' @examples
-#' report <- simulate_fragment_ion_report(default_params)
-#' resu <- run_ttests(report, boot_denom_eps = 0.5)
-#' tables <- compute_contingency_tables(resu, alpha = 0.05)
-#' bar_plot_contingency_tables(
-#'   tables[1], xlab = "Comparison", ylab = "1 - Type I error rate",
-#'   cex.lab = 1.5
-#' )
+#'   report <- simulate_fragment_ion_report(default_params)
+#'   resu <- run_ttests(report, boot_denom_eps = 0.5)
+#'   tables <- compute_contingency_tables(resu, alpha = 0.05)
+#'   bar_plot_contingency_tables(
+#'     tables[1], xlab = "Comparison", ylab = "1 - Type I error rate",
+#'     cex.lab = 1.5
+#'   )
 #' @export
 bar_plot_contingency_tables <- function(
   tables, rejected = FALSE, scale_factor = 1, add_legend = FALSE,
@@ -310,8 +314,10 @@ bar_plot_contingency_tables <- function(
   name_methods <- colnames(tables[[1]])[-1]
   n_methods <- length(name_methods)
 
-  values <- matrix(NA, len_tables, n_methods,
-                   dimnames = list(name_tables, name_methods))
+  values <- matrix(
+    NA, len_tables, n_methods,
+    dimnames = list(name_tables, name_methods)
+  )
 
   for (name in name_tables) {
     a_table <- tables[[name]]

@@ -53,7 +53,7 @@ default_params <- list(
 #' @examples
 #' report <- simulate_fragment_ion_report(default_params)
 #' x1 <- report[
-#'     report$condition == "CON1" & report$fragment_id == "FRAG1"
+#'   report$condition == "CON1" & report$fragment_id == "FRAG1",
 #' ]$precursor_quantity
 #' par(mfrow = c(1,2))
 #' hist(log10(x1), main = "Histogram", xlab = "Precursor Quantity, log10",
@@ -70,8 +70,13 @@ simulate_fragment_ion_report <- function(params, seed = 100) {
   n_fragment <- length(params[["ionization_dirichlet_alpha"]])
 
   if (length(params[["prec_mean_condition_shift"]]) != n_condition) {
-    print(paste("!! The parameter prec_mean_condition_shift must contain",
-                n_condition, "numbers."))
+    print(
+      paste(
+        "!! The parameter prec_mean_condition_shift must contain",
+        n_condition,
+        "numbers."
+      )
+    )
     return(data.frame())
   }
 

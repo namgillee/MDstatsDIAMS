@@ -8,7 +8,7 @@ cov_diff(dat_con1, dat_con2, verbose = FALSE)
 }
 \arguments{
 \item{dat_con1, dat_con2}{data matrices of normalized fragment ion peak area,
-each row is a replicate, each column is a fragment ion}
+in logarithmic scale. Each row is a replicate, each column is a fragment ion.}
 
 \item{verbose}{TRUE to print messages. Default is FALSE.}
 }
@@ -16,14 +16,12 @@ each row is a replicate, each column is a fragment ion}
 covariance matrix of mean difference
 }
 \description{
-A diff for an ion i is defined by d_{i} = xbar_con1{i} - xbar_con2{i}, where
-xbar_con1 and xbar_con2 are the sample means for condition 1 and 2,
-respectively. A covariance of diff between fragment ion i and j is
-cov(d_{i}, d_{j})
-= cov(xbar_con1{i}, xbar_con1{j}) + cov(xbar_con2{i}, xbar_con2{j})
-}
-\examples{
-  dat_x = matrix(rnorm(12), 4, 3)
-  dat_y = matrix(rnorm(12), 4, 3)
-  cov_diff(dat_x, dat_y)
+A diff for an ion \eqn{i} is defined by
+\eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}}, where
+\eqn{\bar{x}_{1i}} and \eqn{\bar{x}_{1i}} are the sample means for
+conditions 1 and 2, respectively. A covariance of diff between fragment ions
+\eqn{i} and \eqn{j} is
+\deqn{cov(d_i, d_j)
+   = cov(\bar{x}_{1i}, \bar{x}_{1j}) +
+   cov(\bar{x}_{2i}, \bar{x}_{2j})}
 }

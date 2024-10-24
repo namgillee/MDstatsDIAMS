@@ -14,8 +14,9 @@ shrinkage_t_test_statistic(
 )
 }
 \arguments{
-\item{dat_con1, dat_con2}{data matrices of normalized fragment ion peak area,
-each row is a replicate, each column is a fragment ion}
+\item{dat_con1, dat_con2}{data matrices of normalized fragment ion peak area
+in logarithmic scale. Each row is a replicate, each column is a fragment
+ion.}
 
 \item{cov_equal}{TRUE if equal covariance is assumed and a pooled
 covariance matrix is computed.}
@@ -33,9 +34,4 @@ shrinkage-based t-test statistic
 }
 \description{
 Shrinkage-based t-test statistic
-}
-\examples{
-  dat_x = matrix(rnorm(12), 4, 3)
-  dat_y = matrix(rnorm(12), 4, 3)
-  shrinkage_t_test_statistic(dat_x, dat_y, TRUE, 0)
 }

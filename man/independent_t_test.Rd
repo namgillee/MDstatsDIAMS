@@ -2,7 +2,7 @@
 % Please edit documentation in R/independent_t_test.R
 \name{independent_t_test}
 \alias{independent_t_test}
-\title{Independent (two) sample t-test for modified peptide using aggregated
+\title{Independent samples t-test for precursor peptide using aggregated
 quantity}
 \usage{
 independent_t_test(
@@ -14,7 +14,8 @@ independent_t_test(
 )
 }
 \arguments{
-\item{quantity1, quantity2}{numeric vectors of normalized peptide quantity}
+\item{quantity1, quantity2}{numeric vectors of normalized peptide quantity in
+logarithmic scale}
 
 \item{var_equal}{TRUE to assume equal variance between conditions. Default
 is TRUE.}
@@ -27,9 +28,9 @@ is TRUE.}
 list of statistic, df, p.value, and estimate.
 }
 \description{
-Independent (two) sample t-test for modified peptide using aggregated
+Independent samples t-test for precursor peptide using aggregated
 quantity
 }
 \examples{
-independent_t_test(rnorm(4), rnorm(4))
+independent_t_test(1 : 4, c(1, 3, 2, 4))
 }

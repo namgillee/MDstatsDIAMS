@@ -7,7 +7,8 @@
 paired_t_test(quantity1, quantity2, conf_level = 0.95, verbose = FALSE)
 }
 \arguments{
-\item{quantity1, quantity2}{numeric vectors of normalized fragment peak area}
+\item{quantity1, quantity2}{numeric vectors of normalized fragment peak area
+in logarithmic scale}
 
 \item{conf_level}{Confidence level. Default is 0.95.}
 
@@ -20,5 +21,5 @@ list of statistic, df, p.value, and estimate.
 Paired t-test for modified peptide using fragment ion peak area
 }
 \examples{
-paired_t_test(rnorm(10), rnorm(10))
+paired_t_test(1 : 4, c(1, 3, 2, 4))
 }

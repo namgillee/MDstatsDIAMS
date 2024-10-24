@@ -1,14 +1,15 @@
-#' Independent (two) sample t-test for modified peptide using aggregated
+#' Independent samples t-test for precursor peptide using aggregated
 #' quantity
 #'
-#' @param quantity1,quantity2  numeric vectors of normalized peptide quantity
+#' @param quantity1,quantity2  numeric vectors of normalized peptide quantity in
+#' logarithmic scale
 #' @param var_equal  TRUE to assume equal variance between conditions. Default
 #'   is TRUE.
 #' @param conf_level  Confidence level. Default is 0.95.
 #' @param verbose  TRUE to print messages. Default is FALSE.
 #' @return list of statistic, df, p.value, and estimate.
 #' @examples
-#' independent_t_test(rnorm(4), rnorm(4))
+#' independent_t_test(1 : 4, c(1, 3, 2, 4))
 #' @export
 independent_t_test <- function(
   quantity1,
@@ -27,7 +28,7 @@ independent_t_test <- function(
     return(list())
   }
 
-  # perform independent sample t-test
+  # perform independent samples t-test
   ttest_out <- t.test(
     quantity1[!is_na_x], quantity2[!is_na_y], var.equal = var_equal,
     paired = FALSE, conf.level = conf_level
@@ -36,7 +37,9 @@ independent_t_test <- function(
     statsitic = ttest_out$statistic,
     df = ttest_out$parameter,
     p.value = ttest_out$p.value,
-    estimate = ttest_out$estimate[1] - ttest_out$estimate[2]
+    estimate = c(
+      `mean difference` = unname(ttest_out$estimate[1] - ttest_out$estimate[2])
+    )
   )
   return(result)
 }
