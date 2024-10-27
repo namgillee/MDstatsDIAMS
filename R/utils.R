@@ -57,6 +57,10 @@ compute_shrink_on_group <- function(
   value_column = "log10_fragment_peak_area",
   boot_denom_eps = 0.5
 ) {
+  if (length(unique(groupdf$condition)) < 2) {
+    return(as.data.frame(list()))
+  }
+
   df_shrink <- groupdf %>%
     reshape::cast(
       replicate ~ fragment_id ~ condition,
@@ -80,23 +84,29 @@ compute_shrink_on_group <- function(
 #' Each pairwise comparisons are performed on each
 #' experiment x protein_id x precursor_id.
 #' @param report fragment ion report with the columns experiment, condition,
-#'   replicate, protein_id, precursor_id, precursor_quantity, fragment_id,
-#'   fragment_peak_area.
+#'   replicate, protein_id, precursor_id, fragment_id, fragment_peak_area.
 #' @param boot_denom_eps a parameter for shrinkage t-test
 #' @return a list of analysis results of three t-test methods, where the result
 #'   of each method is a list for the pairwise comparisons.
 #' @export
-run_ttests <- function(report, boot_denom_eps = 0.5) {
+run_ttests <- function(report, boot_denom_eps = 0.5, base_condition = NULL) {
   conditions <- unique(report$condition)
   n_con <- length(conditions)
   report[["log10_fragment_peak_area"]] <- log10(report[["fragment_peak_area"]])
+
+  if (is.null(base_condition)) {
+    base_condition <- conditions[1]
+  } else if (!(base_condition %in% conditions)) {
+    print(paste(base_condition, "is not in the conditions. Using default."))
+    base_condition <- conditions[1]
+  }
 
   result_paired <- result_indep <- result_shrink <- vector("list", n_con - 1)
   names(result_paired) <- names(result_indep) <- names(result_shrink) <-
     paste0(conditions[1], "/", conditions[2 : n_con])
 
-  con1 <- conditions[1]
-  for (con2 in conditions[2 : n_con]) {
+  con1 <- base_condition
+  for (con2 in conditions[conditions != con1]) {
     id <- paste0(con1, "/", con2)
 
     report_twoconds <- report %>%

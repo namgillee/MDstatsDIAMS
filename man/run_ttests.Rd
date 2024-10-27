@@ -8,8 +8,7 @@ run_ttests(report, boot_denom_eps = 0.5)
 }
 \arguments{
 \item{report}{fragment ion report with the columns experiment, condition,
-replicate, protein_id, precursor_id, precursor_quantity, fragment_id,
-fragment_peak_area.}
+replicate, protein_id, precursor_id, fragment_id, fragment_peak_area.}
 
 \item{boot_denom_eps}{a parameter for shrinkage t-test}
 }
