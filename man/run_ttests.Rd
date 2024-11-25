@@ -4,7 +4,7 @@
 \alias{run_ttests}
 \title{Run t-test methods}
 \usage{
-run_ttests(report, boot_denom_eps = 0.5)
+run_ttests(report, boot_denom_eps = 0.5, base_condition = NULL)
 }
 \arguments{
 \item{report}{fragment ion report with the columns experiment, condition,

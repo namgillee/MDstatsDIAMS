@@ -135,9 +135,10 @@ shrinkage_t_test_statistic <- function(
 #' @param num_boot number of bootstrap replicates. Default is 200.
 #' @param cov_equal  TRUE if equal covariance is assumed and a pooled
 #'   covariance matrix is computed. Default is TRUE.
-#' @param boot_denom_eps  a small constant to be added to the denominator (i.e.,
-#'   standard error of the numerator) of the bootstrapped statistic. This
-#'   constant is useful for bootstrapping with a small sample size.
+#' @param boot_denom_eps  a small constant, boot_denom_eps * (R / 4) ^ (-3 / 2),
+#'   will be added to the denominator (i.e., standard error of the numerator) of
+#'   the bootstrapped statistic. This constant is useful for bootstrapping with
+#'   a small sample size.
 #' @param verbose  TRUE to print messages. Default is FALSE.
 #' @return list of statistic, df, p.value, and estimate.
 #' @examples
@@ -171,7 +172,7 @@ shrinkage_t_test <- function(
       dat[inds, 1:num_ions],
       dat[inds, (num_ions + 1):(2 * num_ions)],
       cov_equal,
-      boot_denom_eps
+      boot_denom_eps * (nrow(dat) / 4)^(-3 / 2)
     )
   }
   boot_out <- boot::boot(
