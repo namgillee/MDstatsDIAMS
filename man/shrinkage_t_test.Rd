@@ -24,9 +24,10 @@ ion.}
 \item{cov_equal}{TRUE if equal covariance is assumed and a pooled
 covariance matrix is computed. Default is TRUE.}
 
-\item{boot_denom_eps}{a small constant to be added to the denominator (i.e.,
-standard error of the numerator) of the bootstrapped statistic. This
-constant is useful for bootstrapping with a small sample size.}
+\item{boot_denom_eps}{a small constant, boot_denom_eps * (R / 4) ^ (-3 / 2),
+will be added to the denominator (i.e., standard error of the numerator) of
+the bootstrapped statistic. This constant is useful for bootstrapping with
+a small sample size.}
 
 \item{verbose}{TRUE to print messages. Default is FALSE.}
 }

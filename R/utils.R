@@ -101,12 +101,13 @@ run_ttests <- function(report, boot_denom_eps = 0.5, base_condition = NULL) {
     base_condition <- conditions[1]
   }
 
+  con1 <- base_condition
+  con_rest <- conditions[conditions != con1]
   result_paired <- result_indep <- result_shrink <- vector("list", n_con - 1)
   names(result_paired) <- names(result_indep) <- names(result_shrink) <-
-    paste0(conditions[1], "/", conditions[2 : n_con])
+    paste0(con1, "/", con_rest)
 
-  con1 <- base_condition
-  for (con2 in conditions[conditions != con1]) {
+  for (con2 in con_rest) {
     id <- paste0(con1, "/", con2)
 
     report_twoconds <- report %>%
