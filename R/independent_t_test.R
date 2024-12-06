@@ -34,7 +34,7 @@ independent_t_test <- function(
     paired = FALSE, conf.level = conf_level
   )
   result <- list(
-    statsitic = ttest_out$statistic,
+    statistic = ttest_out$statistic,
     df = ttest_out$parameter,
     p.value = ttest_out$p.value,
     estimate = c(
