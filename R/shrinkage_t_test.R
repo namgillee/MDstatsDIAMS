@@ -84,12 +84,18 @@ se_diff_shrink <- function(
     sum(cov_con1_unequal_replicates) + sum(cov_con2_unequal_replicates)
   ) / num_ions / num_ions / num_replicates / (num_replicates - 1)
 
+  # Take an absolute value to prevent a negative value
+  cov_unequal_replicates <- abs(cov_unequal_replicates)
+
   ## 3) standard error
+  # Take an absolute value to prevent a negative value inside the sqrt()
   standard_error <- sqrt(
-    sum(cov_con1) / num_replicates + sum(cov_con2) / num_replicates -
-      2 * sum(cov_unequal_conditions) / num_replicates +
-      2 * num_ions * num_ions * (num_replicates - 1) / num_replicates *
-        cov_unequal_replicates
+    abs(
+      sum(cov_con1) / num_replicates + sum(cov_con2) / num_replicates -
+        2 * sum(cov_unequal_conditions) / num_replicates +
+        2 * num_ions * num_ions * (num_replicates - 1) / num_replicates *
+          cov_unequal_replicates
+    )
   )
 
   ## Set attributes
