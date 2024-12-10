@@ -9,25 +9,23 @@ shrinkage_t_test_statistic(
   dat_con2,
   cov_equal,
   denom_eps,
-  lambda_var_con1,
-  lambda_var_con2
+  lambda_var
 )
 }
 \arguments{
-\item{dat_con1, dat_con2}{data matrices of normalized fragment ion peak area
-in logarithmic scale. Each row is a replicate, each column is a fragment
-ion.}
+\item{dat_con1, dat_con2}{Data matrices of normalized fragment ion peak area
+in logarithmic scale. Each row is a replicate, and each column is a
+fragment ion.}
 
 \item{cov_equal}{TRUE if equal covariance is assumed and a pooled
 covariance matrix is computed.}
 
-\item{denom_eps}{a small constant to be added to the denominator (i.e.,
+\item{denom_eps}{A small constant to be added to the denominator (i.e.,
 standard error of the numerator) of the statistic. This constant is useful
 for bootstrapping with a small sample size.}
 
-\item{lambda_var_con1, lambda_var_con2}{the variance shrinkage intensities
-for con1 and con2, respectively. If not specified (default), they are
-estimated by corpcor::cov.shrink function.}
+\item{lambda_var}{Variance shrinkage intensity. If not specified (default),
+they are estimated by corpcor::cov.shrink function.}
 }
 \value{
 shrinkage-based t-test statistic

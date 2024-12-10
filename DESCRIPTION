@@ -1,6 +1,6 @@
 Package: MDstatsDIAMS
 Title: MDstatsDIAMS: Multidimensional Statistical Tools for DIA Mass Spectrometry
-Version: 0.0.4.0000
+Version: 0.1.0.0000
 Authors@R: c(
     person("Namgil", "Lee", role = c("aut", "cre"),
            email = "namgil.lee@bionsight.com",
