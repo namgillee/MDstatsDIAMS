@@ -8,17 +8,21 @@ se_diff_shrink(
   dat_con1,
   dat_con2,
   lambda_var,
-  cov_equal = FALSE,
+  cov_unequal_replicates = 0,
+  cov_equal = TRUE,
   verbose = FALSE
 )
 }
 \arguments{
 \item{dat_con1, dat_con2}{Data matrices of normalized fragment ion peak area
-in logarithmic scale. Each row is a replicate, each column is a fragment
-ion.}
+in logarithmic scale, \eqn{x_{1ir}^p, x_{2ir}^p}. Each row is a replicate,
+each column is a fragment ion.}
 
 \item{lambda_var}{Variance shrinkage intensities. If not specified
 (default), they are estimated by corpcor::cov.shrink function.}
+
+\item{cov_unequal_replicates}{covariance of input variables whose replicates
+are not equal, \eqn{Cov(x_{ci_1r_1}^p, x_{ci_2r_2}^p), r_1 \neq r_2}.}
 
 \item{cov_equal}{TRUE if equal covariance is assumed and a pooled
 covariance matrix is computed.}
@@ -29,7 +33,8 @@ covariance matrix is computed.}
 standard error of the sum of mean differences
 }
 \description{
-The estimate is the sum of diff over fragment ions, where diff for a fragment
-ion is defined by \eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}}, and it
-constitutes the numerator of the test statistic formula.
+Standard error constitutes the numerator of the test statistic formula.
+The estimate for shrinkage-based t-test is the sum of diff over fragment
+ions, where diff for a fragment ion is defined by
+\eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}}.
 }

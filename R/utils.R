@@ -48,17 +48,30 @@ compute_indep_on_group <- function(
 #'
 #' @param groupdf A subset of precursor report which consists of two conditions.
 #'   It contains columns named "replicate", "fragment_id", "condition", and
-#'   a value column is for log10-transformed fragment ion quantities.
+#'   a value column.
+#' @param value_column column name for log10-transformed fragment ion quantities
+#' @param cov_unequal_replicates_column column name for covariance of input
+#'   variables whose replicates are not equal. All entries in the column is
+#'   considered equal. If NULL, the covariance is set to zero.
 #' @param boot_denom_eps A parameter for shrinkage t-test
 #' @return a data frame of the shrinkage t-test results
 #' @export
 compute_shrink_on_group <- function(
   groupdf,
   value_column = "log10_fragment_peak_area",
+  cov_unequal_replicates_column = NULL,
   boot_denom_eps = 0.5
 ) {
   if (length(unique(groupdf$condition)) < 2) {
     return(as.data.frame(list()))
+  }
+
+  cov_unequal_replicates <- 0
+  if (!is.null(cov_unequal_replicates_column) &&
+        !is.null(groupdf[[cov_unequal_replicates_column]])) {
+    cov_unequal_replicates <- groupdf[[cov_unequal_replicates_column]][
+      ~is.na(groupdf[[cov_unequal_replicates_column]])
+    ][1]
   }
 
   df_shrink <- groupdf %>%
@@ -72,9 +85,128 @@ compute_shrink_on_group <- function(
   dat_con2 <- as.matrix(df_shrink[, , 2])
 
   as.data.frame(shrinkage_t_test(
-    dat_con1, dat_con2, num_boot = 100, cov_equal = TRUE,
-    boot_denom_eps = boot_denom_eps, verbose = FALSE
+    dat_con1, dat_con2, cov_unequal_replicates = cov_unequal_replicates,
+    num_boot = 100, cov_equal = TRUE, boot_denom_eps = boot_denom_eps,
+    verbose = FALSE
   ))
+}
+
+
+#' Compute cov_unequal_replicates
+#'
+#' Compute cov_unequal_replicates from data values
+#' @param x  a vector of mean precursor quantities in log10-scale
+#' @return  the cov_unequal_replicates value
+.comp_cov_uneq_repl <- function(x) {
+
+  fit_kde <- density(x)
+
+  idx_max_kde <- which.max(fit_kde$y)
+  x_mode <- fit_kde$x[idx_max_kde]
+  x_mode_height <- fit_kde$y[idx_max_kde]
+
+  # estimate a mixture of normal and exp-beta distributions
+  init_sigma <- sd(c(x_mode - x[x < x_mode], x[x < x_mode] - x_mode))
+
+  init_sigma_height <- dnorm(0, 0, init_sigma)
+  peak_ratio <- min(1, x_mode_height / init_sigma_height)
+  density_log_betas <- pmax(
+    0, fit_kde$y - peak_ratio * dnorm(fit_kde$x, x_mode, init_sigma)
+  )
+  density_log_betas[1:idx_max_kde] <- 0
+  idx_xlim <- max(which(density_log_betas > 0))
+  sum_density_log_betas <- sum(density_log_betas)
+  g_betas <- 10^(sum((fit_kde$x - fit_kde$x[idx_xlim]) * density_log_betas) /
+                   sum_density_log_betas)
+
+  init_alpha0 <- 1
+  init_beta0 <- max(1, 1 / 2 / g_betas - 0.5)
+
+  init_params <- c(x_mode, init_sigma, init_alpha0, init_beta0)
+  fitted_params <- fit_mixture_normal_expbeta(
+    x, init_params, index_fixed_params = c(1), xlim_max = max(fit_kde$x)
+  )
+
+  cov_unequal_replicates <- unname(
+    (trigamma(fitted_params[3]) - trigamma(fitted_params[4])) /
+      (log(10)^2)
+  )
+
+  return(cov_unequal_replicates)
+}
+
+
+#' Compute and attach cov_unequal_replicates
+#'
+#' Compute cov_unequal_replicates by each protein, and attach it into a new
+#' column. The fragment_ion_peak area is first summarized to
+#' log10_peptide_quantity in precursor level. It is then used for estimating
+#' a mixture of normal and expbeta distributions by each protein.
+#' @param report_df  a fragment ion report with multiple conditions and the
+#'   fragment_peak_area column
+#' @return  the report data frame with a new column "cov_unequal_replicates"
+compute_cov_unequal_replicates <- function(report_df) {
+  # compute log10 peptide quantity
+  precursor_df <- report_df %>%
+    dplyr::group_by(
+      .data$experiment,
+      .data$protein_id,
+      .data$precursor_id,
+      .data$replicate,
+      .data$condition
+    ) %>%
+    dplyr::summarise(
+      log10_peptide_quantity = log10(
+        sum(.data$fragment_peak_area, na.rm = TRUE)
+      )
+    )
+
+  # median-normalize them by each condition
+  #   A negative value is not removed but ignored.
+  median_log10_quantity <- median(
+    precursor_df$log10_peptide_quantity, na.rm = TRUE
+  )
+
+  precursor_df_centered <- precursor_df %>%
+    dplyr::group_by(
+      .data$condition
+    ) %>%
+    dplyr::mutate(
+      median_log10_quantity_by_condition =
+        median(.data$log10_peptide_quantity, na.rm = TRUE)
+    ) %>%
+    dplyr::mutate(
+      log10_peptide_quantity =
+        .data$log10_peptide_quantity -
+        .data$median_log10_quantity_by_condition +
+        median_log10_quantity
+    )
+
+  # compute the mean of log10 peptide quantity
+  mean_precursor_df_centered <- precursor_df_centered %>%
+    dplyr::group_by(.data$experiment,
+                    .data$protein_id,
+                    .data$precursor_id,
+                    .data$condition) %>%
+    dplyr::summarise(
+      mean_log10_peptide_quantity = mean(
+        .data$log10_peptide_quantity, na.rm = TRUE
+      )
+    )
+
+  # compute the cov_unequal_replicates by each protein
+  cov_unequal_replicates_df <- mean_precursor_df_centered %>%
+    dplyr::group_by(.data$protein_id) %>%
+    dplyr::summarize(
+      cov_unequal_replicates = .comp_cov_uneq_repl(
+        .data$mean_log10_peptide_quantity
+      )
+    )
+
+  report_df <- report_df %>%
+    dplyr::left_join(cov_unequal_replicates_df, by = "protein_id")
+
+  return(report_df)
 }
 
 
@@ -101,6 +233,10 @@ run_ttests <- function(report, boot_denom_eps = 0.5, base_condition = NULL) {
     base_condition <- conditions[1]
   }
 
+  # Compute cov_unequal_replicates for shrinkage-t-test
+  report <- compute_cov_unequal_replicates(report)
+
+  # Run t-test methods with two conditions
   con1 <- base_condition
   con_rest <- conditions[conditions != con1]
   result_paired <- result_indep <- result_shrink <- vector("list", n_con - 1)
@@ -112,6 +248,7 @@ run_ttests <- function(report, boot_denom_eps = 0.5, base_condition = NULL) {
 
     report_twoconds <- report %>%
       filter(.data$condition == con1 | .data$condition == con2)
+
 
     # Run paired t-test
     df_paired <- report_twoconds %>%
@@ -135,6 +272,7 @@ run_ttests <- function(report, boot_denom_eps = 0.5, base_condition = NULL) {
       ) %>%
       dplyr::group_modify(~compute_paired_on_group(.x)) %>%
       as.data.frame()
+
 
     # Run independent t-test
     df_indep <- report_twoconds %>%
@@ -173,6 +311,7 @@ run_ttests <- function(report, boot_denom_eps = 0.5, base_condition = NULL) {
       dplyr::group_modify(~compute_indep_on_group(.x)) %>%
       as.data.frame()
 
+
     # Run shrinkage t-test
     result_shrink0 <- report_twoconds %>%
       dplyr::group_by(
@@ -182,7 +321,10 @@ run_ttests <- function(report, boot_denom_eps = 0.5, base_condition = NULL) {
       ) %>%
       dplyr::group_modify(
         ~compute_shrink_on_group(
-          .x, boot_denom_eps = boot_denom_eps
+          .x,
+          value_column = "log10_fragment_peak_area",
+          cov_unequal_replicates_column = "cov_unequal_replicates",
+          boot_denom_eps = boot_denom_eps
         )
       ) %>%
       as.data.frame()

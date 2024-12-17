@@ -1,19 +1,23 @@
 #' Standard error of estimate for shrinkage-based t-test statistic.
 #'
-#' The estimate is the sum of diff over fragment ions, where diff for a fragment
-#' ion is defined by \eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}}, and it
-#' constitutes the numerator of the test statistic formula.
+#' Standard error constitutes the numerator of the test statistic formula.
+#' The estimate for shrinkage-based t-test is the sum of diff over fragment
+#' ions, where diff for a fragment ion is defined by
+#' \eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}}.
 #' @param dat_con1,dat_con2  Data matrices of normalized fragment ion peak area
-#'   in logarithmic scale. Each row is a replicate, each column is a fragment
-#'   ion.
+#'   in logarithmic scale, \eqn{x_{1ir}^p, x_{2ir}^p}. Each row is a replicate,
+#'   each column is a fragment ion.
 #' @param lambda_var  Variance shrinkage intensities. If not specified
 #'   (default), they are estimated by corpcor::cov.shrink function.
+#' @param cov_unequal_replicates  covariance of input variables whose replicates
+#'   are not equal, \eqn{Cov(x_{ci_1r_1}^p, x_{ci_2r_2}^p), r_1 \neq r_2}.
 #' @param cov_equal  TRUE if equal covariance is assumed and a pooled
 #'   covariance matrix is computed.
 #' @param verbose  TRUE to print messages. Default is FALSE.
 #' @return standard error of the sum of mean differences
 se_diff_shrink <- function(
-  dat_con1, dat_con2, lambda_var, cov_equal = FALSE, verbose = FALSE
+  dat_con1, dat_con2, lambda_var, cov_unequal_replicates = 0,
+  cov_equal = TRUE, verbose = FALSE
 ) {
 
   # Check number of replicates
@@ -50,7 +54,7 @@ se_diff_shrink <- function(
     )
   )
 
-  # Extract sub-matrices, A1, A2, B
+  # Extract sub-matrices: A1, A2, B
   cov_con1 <- covmat[1:num_ions, 1:num_ions]
   cov_con2 <- covmat[(num_ions + 1):ncol(covmat), (num_ions + 1):ncol(covmat)]
   cov_unequal_conditions <- covmat[1:num_ions, (num_ions + 1):ncol(covmat)]
@@ -61,37 +65,12 @@ se_diff_shrink <- function(
     cov_con2 <- cov_pooled
   }
 
-  ## 2) The covariance term between a pair of fragment ions where replicates are
-  ##    unequal.
-
-  dat_average <- (dat[, 1:num_ions] + dat[, (num_ions + 1):ncol(dat)]) / 2
-  dat_con1_centered <- dat[, 1:num_ions] - dat_average
-  dat_con2_centered <- dat[, (num_ions + 1):ncol(dat)] - dat_average
-
-  cov_con1_unequal_replicates <- cov_con2_unequal_replicates <-
-    matrix(0, num_ions, num_ions)
-  for (shift in 1:(num_replicates - 1)) {
-    idx_rows_shifted <- c((shift + 1):num_replicates, 1:shift)
-
-    # sum_{s > 0} sum_{r} x_{r} x_{r + s}
-    cov_con1_unequal_replicates <- cov_con1_unequal_replicates +
-      t(dat_con1_centered) %*% dat_con1_centered[idx_rows_shifted, ]
-    cov_con2_unequal_replicates <- cov_con2_unequal_replicates +
-      t(dat_con2_centered) %*% dat_con2_centered[idx_rows_shifted, ]
-  }
-
-  cov_unequal_replicates <- (
-    sum(cov_con1_unequal_replicates) + sum(cov_con2_unequal_replicates)
-  ) / num_ions / num_ions / num_replicates / (num_replicates - 1)
-
+  ## 2) standard error
   # Take an absolute value to prevent a negative value
-  cov_unequal_replicates <- abs(cov_unequal_replicates)
-
-  ## 3) standard error
-  # Take an absolute value to prevent a negative value inside the sqrt()
   standard_error <- sqrt(
     abs(
-      sum(cov_con1) / num_replicates + sum(cov_con2) / num_replicates -
+      sum(cov_con1 + cov_unequal_replicates) / num_replicates +
+        sum(cov_con2 + cov_unequal_replicates) / num_replicates -
         2 * sum(cov_unequal_conditions) / num_replicates +
         2 * num_ions * num_ions * (num_replicates - 1) / num_replicates *
           cov_unequal_replicates
@@ -107,6 +86,22 @@ se_diff_shrink <- function(
   attr(standard_error, "lambda_var_estimated") <-
     attr(covmat, "lambda.var.estimated")
 
+  attr(standard_error, "a") <- sum(cov_con1 + cov_unequal_replicates) /
+    num_replicates + sum(cov_con2 + cov_unequal_replicates) / num_replicates
+  attr(standard_error, "a0") <- sum(diag(cov_con1 + cov_unequal_replicates)) /
+    num_replicates +
+    sum(diag(cov_con2 + cov_unequal_replicates)) / num_replicates
+  attr(standard_error, "a_minus_d") <- sum(cov_con1) / num_replicates +
+    sum(cov_con2) / num_replicates
+  attr(standard_error, "a0_minus_d") <- sum(diag(cov_con1)) / num_replicates +
+    sum(diag(cov_con2)) / num_replicates
+  attr(standard_error, "b") <- - 2 * sum(cov_unequal_conditions) /
+    num_replicates
+  attr(standard_error, "b0") <- - 2 * sum(diag(cov_unequal_conditions)) /
+    num_replicates
+  attr(standard_error, "d") <- 2 * num_ions * num_ions * (num_replicates - 1) /
+    num_replicates * cov_unequal_replicates
+
   return(standard_error)
 }
 
@@ -118,6 +113,8 @@ se_diff_shrink <- function(
 #'   fragment ion.
 #' @param lambda_var  Variance shrinkage intensity. If not specified (default),
 #'   they are estimated by corpcor::cov.shrink function.
+#' @param cov_unequal_replicates  covariance of input variables whose replicates
+#'   are not equal.
 #' @param cov_equal  TRUE if equal covariance is assumed and a pooled
 #'   covariance matrix is computed.
 #' @param denom_eps  A small constant to be added to the denominator (i.e.,
@@ -125,7 +122,7 @@ se_diff_shrink <- function(
 #'   for bootstrapping with a small sample size.
 #' @return shrinkage-based t-test statistic
 shrinkage_t_test_statistic <- function(
-  dat_con1, dat_con2, cov_equal, denom_eps, lambda_var
+  dat_con1, dat_con2, cov_unequal_replicates, cov_equal, denom_eps, lambda_var
 ) {
 
   result <- NaN
@@ -146,6 +143,7 @@ shrinkage_t_test_statistic <- function(
   # denominator of the test statistic formula.
   denom <- se_diff_shrink(
     dat_con1, dat_con2, lambda_var,
+    cov_unequal_replicates = cov_unequal_replicates,
     cov_equal = cov_equal, verbose = FALSE
   )
 
@@ -153,6 +151,8 @@ shrinkage_t_test_statistic <- function(
   if (denom > 0) {
     result <- estimate / (denom + denom_eps)
   }
+
+  attributes(result) <- attributes(denom)
 
   return(result)
 }
@@ -164,7 +164,9 @@ shrinkage_t_test_statistic <- function(
 #' @param dat_con1,dat_con2  data matrices of normalized fragment ion peak area
 #'   in logarithmic scale. Each row is a replicate, each column is a fragment
 #'   ion.
-#' @param num_boot number of bootstrap replicates. Default is 200.
+#' @param cov_unequal_replicates  covariance of input variables whose replicates
+#'   are not equal.
+#' @param num_boot number of bootstrap replicates.
 #' @param cov_equal  TRUE if equal covariance is assumed and a pooled
 #'   covariance matrix is computed. Default is TRUE.
 #' @param boot_denom_eps  a small constant, boot_denom_eps * (R / 4) ^ (-3 / 2),
@@ -179,8 +181,8 @@ shrinkage_t_test_statistic <- function(
 #'   shrinkage_t_test(dat_x, dat_y)
 #' @export
 shrinkage_t_test <- function(
-  dat_con1, dat_con2, num_boot = 100, cov_equal = TRUE, boot_denom_eps = 0.5,
-  verbose = FALSE
+  dat_con1, dat_con2, cov_unequal_replicates = 0, num_boot = 100,
+  cov_equal = TRUE, boot_denom_eps = 0.5, verbose = FALSE
 ) {
 
   # check number of fragment ions
@@ -203,7 +205,7 @@ shrinkage_t_test <- function(
   result <- list()
 
   result$statistic <- shrinkage_t_test_statistic(
-    dat_con1, dat_con2, cov_equal, 0
+    dat_con1, dat_con2, cov_unequal_replicates, cov_equal, 0
   )
 
   shrinkage_t_statistic_wrapper <- function(dat, inds) {
@@ -211,6 +213,7 @@ shrinkage_t_test <- function(
     shrinkage_t_test_statistic(
       dat[inds, 1:num_ions],
       dat[inds, (num_ions + 1):ncol(dat)],
+      cov_unequal_replicates,
       cov_equal,
       boot_denom_eps * (nrow(dat) / 4)^(-3 / 2)
     )
@@ -229,6 +232,16 @@ shrinkage_t_test <- function(
       apply(dat_con1, 2, mean, na.rm = TRUE) -
         apply(dat_con2, 2, mean, na.rm = TRUE), na.rm = TRUE
     )
+
+  result$lambda <- attr(result$statistic, "lambda")
+  result$lambda_var <- attr(result$statistic, "lambda_var")
+  result$a <- attr(result$statistic, "a")
+  result$a0 <- attr(result$statistic, "a0")
+  result$a_minus_d <- attr(result$statistic, "a_minus_d")
+  result$a0_minus_d <- attr(result$statistic, "a0_minus_d")
+  result$b <- attr(result$statistic, "b")
+  result$b0 <- attr(result$statistic, "b0")
+  result$d <- attr(result$statistic, "d")
 
   return(result)
 }

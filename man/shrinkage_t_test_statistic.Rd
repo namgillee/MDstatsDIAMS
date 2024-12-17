@@ -7,6 +7,7 @@
 shrinkage_t_test_statistic(
   dat_con1,
   dat_con2,
+  cov_unequal_replicates,
   cov_equal,
   denom_eps,
   lambda_var
@@ -16,6 +17,9 @@ shrinkage_t_test_statistic(
 \item{dat_con1, dat_con2}{Data matrices of normalized fragment ion peak area
 in logarithmic scale. Each row is a replicate, and each column is a
 fragment ion.}
+
+\item{cov_unequal_replicates}{covariance of input variables whose replicates
+are not equal.}
 
 \item{cov_equal}{TRUE if equal covariance is assumed and a pooled
 covariance matrix is computed.}

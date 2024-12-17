@@ -8,6 +8,7 @@ quantity using fragment ion peak area}
 shrinkage_t_test(
   dat_con1,
   dat_con2,
+  cov_unequal_replicates = 0,
   num_boot = 100,
   cov_equal = TRUE,
   boot_denom_eps = 0.5,
@@ -19,7 +20,10 @@ shrinkage_t_test(
 in logarithmic scale. Each row is a replicate, each column is a fragment
 ion.}
 
-\item{num_boot}{number of bootstrap replicates. Default is 200.}
+\item{cov_unequal_replicates}{covariance of input variables whose replicates
+are not equal.}
+
+\item{num_boot}{number of bootstrap replicates.}
 
 \item{cov_equal}{TRUE if equal covariance is assumed and a pooled
 covariance matrix is computed. Default is TRUE.}
