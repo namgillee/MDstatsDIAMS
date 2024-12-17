@@ -145,6 +145,7 @@ compute_shrink_on_group <- function(
 #' @param report_df  a fragment ion report with multiple conditions and the
 #'   fragment_peak_area column
 #' @return  the report data frame with a new column "cov_unequal_replicates"
+#' @export
 compute_cov_unequal_replicates <- function(report_df) {
   # compute log10 peptide quantity
   precursor_df <- report_df %>%

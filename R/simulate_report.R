@@ -17,7 +17,7 @@ default_params <- list(
 
   # Sampling of precursor mean quantity from Normal distribution
   prec_mean_mean = 5.0,
-  prec_mean_std = 0.1,
+  prec_mean_std = 1,
 
   # Sampling of data acquisition rate from Beta distribution
   acquisition_beta_fnt = rbetamixture,
@@ -30,7 +30,7 @@ default_params <- list(
   # Sampling of ionization efficiency from Dirichlet distribution
   ionization_dirichlet_fnt = dirmult::rdirichlet,
   ionization_dirichlet_alpha = c(2, 2, 2),
-  ionization_cor_bet_condition = 0.0,
+  ionization_cor_bet_condition = 0.89,
 
   # Mean shift values added to the precursor mean quantity over conditions
   prec_mean_condition_shift = c(0, 0 : 2) * log10(2)
