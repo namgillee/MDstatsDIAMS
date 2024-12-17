@@ -154,7 +154,13 @@ simulate_fragment_ion_report <- function(params, seed = 100) {
     )
   } else if ((cor_w1 > 0) && (cor_w1 <= 1)) {
     ### compute weight from correlation in w1 between conditions
-    weight <- (2 * cor_w1 + 1 - sqrt(-(2 * cor_w1 - 1)^2 + 2)) / (4 * cor_w1)
+    ### solve: cor_w1 = corr(X, Z), where Z = (1-weight)*Y + weight*X,
+    ###   where X and Y are independent.
+    weight <- ifelse(
+      cor_w1 == 1 / sqrt(2),
+      0.5,
+      (cor_w1^2 - sqrt(cor_w1^2 * (1 - cor_w1^2))) / (2 * cor_w1^2 - 1)
+    )
     ### reshape
     dim(w1_values) <- c(n_replicate * n_condition, n_experiment * n_fragment)
     w1_values <- t(w1_values) #n_experiment * n_fragment x n_replicate * n_con..

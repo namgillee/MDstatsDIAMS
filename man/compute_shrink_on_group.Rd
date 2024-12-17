@@ -7,13 +7,20 @@
 compute_shrink_on_group(
   groupdf,
   value_column = "log10_fragment_peak_area",
+  cov_unequal_replicates_column = NULL,
   boot_denom_eps = 0.5
 )
 }
 \arguments{
 \item{groupdf}{A subset of precursor report which consists of two conditions.
 It contains columns named "replicate", "fragment_id", "condition", and
-a value column is for log10-transformed fragment ion quantities.}
+a value column.}
+
+\item{value_column}{column name for log10-transformed fragment ion quantities}
+
+\item{cov_unequal_replicates_column}{column name for covariance of input
+variables whose replicates are not equal. All entries in the column is
+considered equal. If NULL, the covariance is set to zero.}
 
 \item{boot_denom_eps}{A parameter for shrinkage t-test}
 }
