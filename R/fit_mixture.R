@@ -15,11 +15,11 @@ dexpbeta10 <- function(x, shape1 = 1, shape2 = 1) {
 #' @param index_fixed_params  index for fixed parameters. A subset of {1,..., 4}
 #' @return  a vector of fitted parameters and component weights
 fit_mixture_normal_expbeta <- function(
-  x, init_params, max_iter = 30, index_fixed_params = c(1), x_maxlim = NULL
+  x, init_params, max_iter = 30, index_fixed_params = c(1), xlim_max = NULL
 ) {
 
-  if (is.null(x_maxlim)) {
-    x_maxlim <- max(x) + 0.5
+  if (is.null(xlim_max)) {
+    xlim_max <- max(x) + 0.5
   }
 
   fitted_params <- init_params
@@ -31,7 +31,7 @@ fit_mixture_normal_expbeta <- function(
     # Evaluate density functions
     weighted_density_values <- cbind(
       dnorm(x, fitted_params[1], fitted_params[2]),
-      dexpbeta10(x - x_maxlim, fitted_params[3], fitted_params[4])
+      dexpbeta10(x - xlim_max, fitted_params[3], fitted_params[4])
     ) %*% diag(compo_weights)
 
     # Posterior expectation of latent variables
@@ -60,7 +60,7 @@ fit_mixture_normal_expbeta <- function(
     suppressWarnings(
       fit_resu <- MASS::fitdistr(
         x = rep(
-          x - x_maxlim,
+          x - xlim_max,
           round(
             prob_compo_inclusion[, 2] / sum(prob_compo_inclusion[, 2]) * 10000
           )
@@ -73,12 +73,12 @@ fit_mixture_normal_expbeta <- function(
     fitted_params[4] <- fit_resu$estimate[2]
 
     if (sum((fitted_params - old_fitted_params)^2) / sum(old_fitted_params^2) <
-          1e-10) {
+          1e-8) {
       break
     }
   }
 
   names(fitted_params) <- c("mean", "sd", "shape1", "shape2")
   names(compo_weights) <- c("component1", "component2")
-  return(c(fitted_params, compo_weights))
+  return(c(fitted_params, compo_weights, xlim_max = xlim_max))
 }

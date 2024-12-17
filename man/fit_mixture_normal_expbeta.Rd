@@ -9,7 +9,7 @@ fit_mixture_normal_expbeta(
   init_params,
   max_iter = 30,
   index_fixed_params = c(1),
-  x_maxlim = NULL
+  xlim_max = NULL
 )
 }
 \arguments{

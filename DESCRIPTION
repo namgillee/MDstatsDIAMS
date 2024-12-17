@@ -38,6 +38,7 @@ Imports:
     colorspace (>= 2.1),
     corpcor (>= 1.6.9),
     dirmult (>= 0.1.3),
+    MASS (>= 7.3-60),
     reshape (>= 0.8.9),
     stats (>= 4.3.0)
 Encoding: UTF-8
