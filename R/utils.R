@@ -70,7 +70,7 @@ compute_shrink_on_group <- function(
   if (!is.null(cov_unequal_replicates_column) &&
         !is.null(groupdf[[cov_unequal_replicates_column]])) {
     cov_unequal_replicates <- groupdf[[cov_unequal_replicates_column]][
-      ~is.na(groupdf[[cov_unequal_replicates_column]])
+      !is.na(groupdf[[cov_unequal_replicates_column]])
     ][1]
   }
 
