@@ -57,18 +57,18 @@ fit_mixture_normal_expbeta <- function(
     }
 
     # Weighted MLE for expbeta density
-    suppressWarnings(
-      fit_resu <- MASS::fitdistr(
-        x = rep(
-          x - xlim_max,
-          round(
-            prob_compo_inclusion[, 2] / sum(prob_compo_inclusion[, 2]) * 10000
-          )
-        ),
-        densfun = dexpbeta10,
-        start = list(shape1 = fitted_params[3], shape2 = fitted_params[4])
-      )
+    fit_resu <- MASS::fitdistr(
+      x = rep(
+        x - xlim_max,
+        round(
+          prob_compo_inclusion[, 2] / sum(prob_compo_inclusion[, 2]) * 10000
+        )
+      ),
+      densfun = dexpbeta10,
+      start = list(shape1 = fitted_params[3], shape2 = fitted_params[4]),
+      lower = c(0.1, 0.1)
     )
+
     fitted_params[3] <- fit_resu$estimate[1]
     fitted_params[4] <- fit_resu$estimate[2]
 
