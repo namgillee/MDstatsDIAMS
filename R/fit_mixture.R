@@ -4,7 +4,9 @@
 #' @param shape1,shape2  shape parameters
 #' @return  density function values
 dexpbeta10 <- function(x, shape1 = 1, shape2 = 1) {
-  return(dbeta(10^x, shape1 = shape1, shape2 = shape2) * 10^x * log(10))
+  log_f <- - lbeta(shape1, shape2) + x * (shape1 - 1) * log(10) +
+    (shape2 - 1) * log1p(- 10^x) + x * log(10) + log(log(10))
+  return(exp(log_f))
 }
 
 
@@ -66,7 +68,8 @@ fit_mixture_normal_expbeta <- function(
       ),
       densfun = dexpbeta10,
       start = list(shape1 = fitted_params[3], shape2 = fitted_params[4]),
-      lower = c(0.1, 0.1)
+      lower = c(0.1, 1),
+      upper = c(40, Inf)
     )
 
     fitted_params[3] <- fit_resu$estimate[1]
