@@ -11,7 +11,7 @@ default_params <- list(
   precursor_id = "prec",
 
   # Numbers of samples
-  n_experiment = 100,
+  n_experiment = 500,
   n_condition = 4,
   n_replicate = 4,
 
@@ -20,9 +20,9 @@ default_params <- list(
   prec_mean_std = 1,
 
   # Sampling of data acquisition rate from Beta distribution
-  acquisition_beta_fnt = rbetamixture,
-  acquisition_beta_shape1 = (1 : 20) + 1,
-  acquisition_beta_shape2 = 9 * (1 : 20) + 1,
+  acquisition_beta_fnt = rbeta,
+  acquisition_beta_shape1 = 2,
+  acquisition_beta_shape2 = 10,
 
   # Sampling of noise from Normal distribution with the mean of zero
   noise_std = 0.1,

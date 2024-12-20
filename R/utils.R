@@ -99,38 +99,22 @@ compute_shrink_on_group <- function(
 #' @return  the cov_unequal_replicates value
 .comp_cov_uneq_repl <- function(x) {
 
-  fit_kde <- density(x)
+  # compute the sample variance
+  var_x <- var(x)
+
+  # estimate a mixture of normal and exp-beta distributions
+  fit_kde <- stats::density(x)
 
   idx_max_kde <- which.max(fit_kde$y)
   x_mode <- fit_kde$x[idx_max_kde]
-  x_mode_height <- fit_kde$y[idx_max_kde]
-
-  # estimate a mixture of normal and exp-beta distributions
-  init_sigma <- sd(c(x_mode - x[x < x_mode], x[x < x_mode] - x_mode))
-
-  init_sigma_height <- dnorm(0, 0, init_sigma)
-  peak_ratio <- min(1, x_mode_height / init_sigma_height)
-  density_log_betas <- pmax(
-    0, fit_kde$y - peak_ratio * dnorm(fit_kde$x, x_mode, init_sigma)
-  )
-  density_log_betas[1:idx_max_kde] <- 0
-  idx_xlim <- max(which(density_log_betas > 0))
-  sum_density_log_betas <- sum(density_log_betas)
-  g_betas <- 10^(sum((fit_kde$x - fit_kde$x[idx_xlim]) * density_log_betas) /
-                   sum_density_log_betas)
-
-  init_alpha0 <- 1
-  init_beta0 <- max(1, 1 / 2 / g_betas - 0.5)
-
-  init_params <- c(x_mode, init_sigma, init_alpha0, init_beta0)
-  fitted_params <- fit_mixture_normal_expbeta(
-    x, init_params, index_fixed_params = c(1), xlim_max = max(fit_kde$x)
+  init_sigma <- min(
+    c(stats::quantile(x_mode - x[x < x_mode], (3:7) / 10) /
+        qnorm(0.5 + (3:7) / 20),
+      stats::quantile(x[x > x_mode] - x_mode, (3:7) / 10) /
+        qnorm(0.5 + (3:7) / 20))
   )
 
-  cov_unequal_replicates <- unname(
-    (trigamma(fitted_params[3]) - trigamma(fitted_params[4])) /
-      (log(10)^2)
-  )
+  cov_unequal_replicates <- max(1e-5, var_x - init_sigma^2)
 
   return(cov_unequal_replicates)
 }
