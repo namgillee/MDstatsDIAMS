@@ -103,13 +103,15 @@ compute_shrink_on_group <- function(
   var_x <- var(x)
 
   # estimate a mixture of normal and exp-beta distributions
-  fit_kde <- density(x)
+  fit_kde <- stats::density(x)
 
   idx_max_kde <- which.max(fit_kde$y)
   x_mode <- fit_kde$x[idx_max_kde]
   init_sigma <- min(
-    c(quantile(x_mode - x[x < x_mode], (3:7) / 10) / qnorm(0.5 + (3:7) / 20),
-      quantile(x[x > x_mode] - x_mode, (3:7) / 10) / qnorm(0.5 + (3:7) / 20))
+    c(stats::quantile(x_mode - x[x < x_mode], (3:7) / 10) /
+        qnorm(0.5 + (3:7) / 20),
+      stats::quantile(x[x > x_mode] - x_mode, (3:7) / 10) /
+        qnorm(0.5 + (3:7) / 20))
   )
 
   cov_unequal_replicates <- max(1e-5, var_x - init_sigma^2)
