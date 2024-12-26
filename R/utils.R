@@ -107,13 +107,15 @@ compute_shrink_on_group <- function(
 
   idx_max_kde <- which.max(fit_kde$y)
   x_mode <- fit_kde$x[idx_max_kde]
-  init_sigma <- mean(
-    stats::quantile(x_mode - x[x < x_mode], (4:9) / 10) /
-      qnorm(0.5 + (4:9) / 20),
-    na.rm = TRUE
-  )
 
-  cov_unequal_replicates <- max(1e-5, var_x - init_sigma^2)
+  sigma_left <- diff(quantile(x_mode - x[x < x_mode], (c(4, 9)) / 10)) /
+    diff(qnorm(0.5 + (c(4, 9)) / 20))
+  sigma_right <- diff(quantile(x[x > x_mode] - x_mode, (c(4, 9)) / 10)) /
+    diff(qnorm(0.5 + (c(4, 9)) / 20))
+
+  init_sigma <- min(sigma_left, sigma_right)
+
+  cov_unequal_replicates <- max(0, var_x - init_sigma^2)
 
   return(cov_unequal_replicates)
 }
