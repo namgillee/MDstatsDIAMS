@@ -181,16 +181,11 @@ compute_cov_unequal_replicates <- function(report_df) {
     )
 
   # compute the cov_unequal_replicates by each protein
-  cov_unequal_replicates_df <- mean_precursor_df_centered %>%
-    dplyr::group_by(.data$protein_id) %>%
-    dplyr::summarize(
-      cov_unequal_replicates = .comp_cov_uneq_repl(
-        .data$mean_log10_peptide_quantity
-      )
-    )
+  cov_unequal_replicates <- .comp_cov_uneq_repl(
+    mean_precursor_df_centered$mean_log10_peptide_quantity
+  )
 
-  report_df <- report_df %>%
-    dplyr::left_join(cov_unequal_replicates_df, by = "protein_id")
+  report_df$cov_unequal_replicates <- cov_unequal_replicates
 
   return(report_df)
 }
