@@ -25,7 +25,7 @@ se_diff_shrink <- function(
     if (verbose) {
       print("Number of rows in dat_con1 and dat_con2 must be same.")
     }
-    return(matrix())
+    return(NaN)
   }
 
   # Number of ions, I
@@ -44,7 +44,7 @@ se_diff_shrink <- function(
     if (verbose) {
       print("Number of complete rows in the data matrix must be larger than 2")
     }
-    return(matrix())
+    return(NaN)
   }
 
   # Compute covariance matrix
@@ -148,7 +148,7 @@ shrinkage_t_test_statistic <- function(
   )
 
   # test statistic
-  if (denom > 0) {
+  if (!is.na(denom) && (denom >= 0)) {
     result <- estimate / (denom + denom_eps)
   }
 

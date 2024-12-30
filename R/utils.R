@@ -83,6 +83,7 @@ compute_shrink_on_group <- function(
 
   dat_con1 <- as.matrix(df_shrink[, , 1])
   dat_con2 <- as.matrix(df_shrink[, , 2])
+  dim(dat_con1) <- dim(dat_con2) <- dim(df_shrink)[1 : 2]
 
   as.data.frame(shrinkage_t_test(
     dat_con1, dat_con2, cov_unequal_replicates = cov_unequal_replicates,
