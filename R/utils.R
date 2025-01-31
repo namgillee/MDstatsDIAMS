@@ -229,7 +229,7 @@ run_ttests <- function(report, boot_denom_eps = 0.5, base_condition = NULL) {
     id <- paste0(con1, "/", con2)
 
     report_twoconds <- report %>%
-      filter(.data$condition == con1 | .data$condition == con2)
+      dplyr::filter(.data$condition == con1 | .data$condition == con2)
 
 
     # Run paired t-test
