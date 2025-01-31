@@ -1,6 +1,6 @@
 # MDstatsDIAMS: Multidimensional Statistical Tools for DIA Mass Spectrometry
 
-Available statistical tools:
+## Available statistical tools
 
 1. Statistical methods for testing group mean differences in peptide quantities
 
@@ -10,14 +10,38 @@ Available statistical tools:
 
 2. Generating a simulated fragment ion report
 
+3. Converting a Spectronaut report into a standard format
 
-Example:
+
+## Examples
+
+The package can be installed conveniently from GitHub:
 
 ```
-library(MDstatsDIAMS)
+if (!("devtools" %in% installed.packages())) 
+  install.packages("devtools")
 
+devtools::install_github("namgillee/MDstatsDIAMS")
+library(MDstatsDIAMS)
+```
+
+One can generate a simulated fragment ion report using a hierarchical graphical
+model, and run $t$-tests:
+
+```
 report <- simulate_fragment_ion_report(default_params)
-test_results <- run_ttests(report)
+test_results <- run_ttests(report, boot_denom_eps = 0.3)
+compute_contingency_tables(test_results)
+```
+
+Instead, one can import a Spectronaut fragment ion report, convert it into a
+standard format, and run $t$-tests:
+
+```
+sample_report <- read.delim("data/sample_spectronaut_report.tsv")
+report <- convert_sn_to_standard(sample_report)
+test_results <- run_ttests(report, boot_denom_eps = 0.3, base_condition = "DMSO")
+compute_contingency_tables(test_results)
 ```
 
 

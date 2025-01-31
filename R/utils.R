@@ -83,6 +83,7 @@ compute_shrink_on_group <- function(
 
   dat_con1 <- as.matrix(df_shrink[, , 1])
   dat_con2 <- as.matrix(df_shrink[, , 2])
+  dim(dat_con1) <- dim(dat_con2) <- dim(df_shrink)[1 : 2]
 
   as.data.frame(shrinkage_t_test(
     dat_con1, dat_con2, cov_unequal_replicates = cov_unequal_replicates,
@@ -107,14 +108,15 @@ compute_shrink_on_group <- function(
 
   idx_max_kde <- which.max(fit_kde$y)
   x_mode <- fit_kde$x[idx_max_kde]
-  init_sigma <- min(
-    c(stats::quantile(x_mode - x[x < x_mode], (3:7) / 10) /
-        qnorm(0.5 + (3:7) / 20),
-      stats::quantile(x[x > x_mode] - x_mode, (3:7) / 10) /
-        qnorm(0.5 + (3:7) / 20))
-  )
 
-  cov_unequal_replicates <- max(1e-5, var_x - init_sigma^2)
+  sigma_left <- diff(quantile(x_mode - x[x < x_mode], (c(4, 9)) / 10)) /
+    diff(qnorm(0.5 + (c(4, 9)) / 20))
+  sigma_right <- diff(quantile(x[x > x_mode] - x_mode, (c(4, 9)) / 10)) /
+    diff(qnorm(0.5 + (c(4, 9)) / 20))
+
+  init_sigma <- min(sigma_left, sigma_right)
+
+  cov_unequal_replicates <- max(0, var_x - init_sigma^2)
 
   return(cov_unequal_replicates)
 }
@@ -180,16 +182,11 @@ compute_cov_unequal_replicates <- function(report_df) {
     )
 
   # compute the cov_unequal_replicates by each protein
-  cov_unequal_replicates_df <- mean_precursor_df_centered %>%
-    dplyr::group_by(.data$protein_id) %>%
-    dplyr::summarize(
-      cov_unequal_replicates = .comp_cov_uneq_repl(
-        .data$mean_log10_peptide_quantity
-      )
-    )
+  cov_unequal_replicates <- .comp_cov_uneq_repl(
+    mean_precursor_df_centered$mean_log10_peptide_quantity
+  )
 
-  report_df <- report_df %>%
-    dplyr::left_join(cov_unequal_replicates_df, by = "protein_id")
+  report_df$cov_unequal_replicates <- cov_unequal_replicates
 
   return(report_df)
 }
@@ -231,8 +228,8 @@ run_ttests <- function(report, boot_denom_eps = 0.5, base_condition = NULL) {
   for (con2 in con_rest) {
     id <- paste0(con1, "/", con2)
 
-    report_twoconds <- report %>%
-      filter(.data$condition == con1 | .data$condition == con2)
+    report_twoconds <- report[
+      (report$condition == con1) | (report$condition == con2), ]
 
 
     # Run paired t-test
