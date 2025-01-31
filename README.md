@@ -31,7 +31,6 @@ model, and run $t$-tests:
 library(MDstatsDIAMS)
 
 report <- simulate_fragment_ion_report(default_params)
-report <- compute_cov_unequal_replicates(report)
 test_results <- run_ttests(report, boot_denom_eps = 0.3)
 ```
 
@@ -43,7 +42,6 @@ library(MDstatsDIAMS)
 
 sample_report <- read.delim("data/sample_spectronaut_report.tsv")
 report <- convert_sn_to_standard(sample_report)
-report <- compute_cov_unequal_replicates(report)
 test_results <- run_ttests(report, boot_denom_eps = 0.3, base_condition = "DMSO")
 ```
 
