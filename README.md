@@ -2,15 +2,11 @@
 
 ## Available statistical tools
 
-1. Statistical methods for testing group mean differences in peptide quantities
+1. Testing group mean differences in peptide quantities
 
   - Paired t-test
   - Independent samples t-test
   - Shrinkage-based t-test
-
-2. Generating a simulated fragment ion report
-
-3. Converting a Spectronaut report into a standard format
 
 
 ## Examples
@@ -29,7 +25,9 @@ One can generate a simulated fragment ion report using a hierarchical graphical
 model, and run $t$-tests:
 
 ```
-report <- simulate_fragment_ion_report(default_params)
+params <- default_params
+params$n_experiment <- 100
+report <- simulate_fragment_ion_report(params)
 test_results <- run_ttests(report, boot_denom_eps = 0.3)
 compute_contingency_tables(test_results)
 ```
