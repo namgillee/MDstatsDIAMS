@@ -54,6 +54,7 @@ compute_indep_on_group <- function(
 #'   variables whose replicates are not equal. All entries in the column is
 #'   considered equal. If NULL, the covariance is set to zero.
 #' @param boot_denom_eps A parameter for shrinkage t-test
+#' @importFrom dplyr %>%
 #' @return a data frame of the shrinkage t-test results
 #' @export
 compute_shrink_on_group <- function(
@@ -130,6 +131,7 @@ compute_shrink_on_group <- function(
 #' a mixture of normal and expbeta distributions by each protein.
 #' @param report_df  a fragment ion report with multiple conditions and the
 #'   fragment_peak_area column
+#' @importFrom dplyr %>%
 #' @return  the report data frame with a new column "cov_unequal_replicates"
 #' @export
 compute_cov_unequal_replicates <- function(report_df) {
@@ -200,6 +202,7 @@ compute_cov_unequal_replicates <- function(report_df) {
 #' @param report fragment ion report with the columns experiment, condition,
 #'   replicate, protein_id, precursor_id, fragment_id, fragment_peak_area.
 #' @param boot_denom_eps a parameter for shrinkage t-test
+#' @importFrom dplyr %>%
 #' @return a list of analysis results of three t-test methods, where the result
 #'   of each method is a list for the pairwise comparisons.
 #' @export
@@ -355,8 +358,12 @@ compute_contingency_tables <- function(results_run_ttests, alpha = 0.05) {
       names(tab_method_comparison) <- c("Rejected", method)
 
       # Collect contingency tables
-      tab_result_comparison <- tab_result_comparison %>%
-        merge(tab_method_comparison, by = "Rejected", all = TRUE)
+      tab_result_comparison <- merge(
+        tab_result_comparison,
+        tab_method_comparison,
+        by = "Rejected",
+        all = TRUE
+      )
     }
 
     tab_result_comparison[is.na(tab_result_comparison)] <- 0

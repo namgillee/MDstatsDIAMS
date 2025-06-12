@@ -6,6 +6,7 @@
 #'   F.FrgIon, F.FrgLossType, F.Charge, F.ExcludedFromQuantification.
 #' @param filter_identified TRUE if only identified precursors remain in the
 #'   report.
+#' @importFrom dplyr %>%
 #' @return A standard report with columns condition, replicate, experiment,
 #'   protein_id, precursor_id, precursor_qvalue, fragment_id, fragment_peak_area
 #' @export
@@ -19,7 +20,7 @@ convert_sn_to_standard <- function(sn_report, filter_identified = TRUE) {
         (sn_report$F.NormalizedPeakArea > 1), ]
   } else {
     sn_report <- sn_report[
-        (sn_report$F.ExcludedFromQuantification == "False") &
+      (sn_report$F.ExcludedFromQuantification == "False") &
         (sn_report$F.NormalizedPeakArea > 1), ]
   }
 
