@@ -1,34 +1,32 @@
 Package: MDstatsDIAMS
-Title: MDstatsDIAMS: Multidimensional Statistical Tools for DIA Mass Spectrometry
+Title: MDstatsDIAMS: Multidimensional Statistical Tools for DIA Mass
+    Spectrometry
 Version: 0.2.4.0000
 Authors@R: c(
-    person("Namgil", "Lee", role = c("aut", "cre"),
-           email = "namgil.lee@bionsight.com",
+    person("Namgil", "Lee", , "namgil.lee@bionsight.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0003-0593-9028")),
-    person("Juhyeong", "Kim", role = c("ctb"),
-           email = "juheong.kim@kangwon.ac.kr"),
-    person("Hojin", "Yoo", role = c("aut", "ctb"),
-           email = "hojinyoo@bionsight.com"),
-    person("Heejung", "Yang", role = c("aut"),
-           email = "heejyang@bionsight.com")
-    )
-Description:
-    There is a greater need for statistically methodologies to detect
-    differentially abundant proteomic substrates (proteins/peptides), as
-    quantitative measurements across multiple conditions and biological
-    replicates are increasing using high-resolution mass spectrometry.
-    We propose a hierarchical graphical model, which incorporates
-    (1) data acquisition rate to explain non-normality in peptide quantity and
-    hidden biases in classical test statistics, and (2) ionization efficiency
-    explains statistical dependence between fragment ion intensities
-    corresponding to a precursor peptide. Then, we propose a nonparametric
-    statistical method for testing group mean differences in bottom-up
-    proteomics. It estimates covariance matrices between fragment ion
-    intensities to accurately estimate their correlation and address statistical
-    dependence. A nonparametric shrinkage approach is used to cope with small
-    sample sizes and avoid ovefitting, because typical MS experiments produce a
-    very low number of replicates (e.g., 3 or 4). In addition, we propose a
-    bootstrap approach for accurate hyperparameter estimation.
+    person("Juhyeong", "Kim", , "juheong.kim@kangwon.ac.kr", role = "ctb"),
+    person("Hojin", "Yoo", , "hojinyoo@bionsight.com", role = c("aut", "ctb")),
+    person("Heejung", "Yang", , "heejyang@bionsight.com", role = "aut")
+  )
+Description:There is a greater need for statistically methodologies to
+    detect differentially abundant proteomic substrates
+    (proteins/peptides), as quantitative measurements across multiple
+    conditions and biological replicates are increasing using
+    high-resolution mass spectrometry.  We propose a hierarchical
+    graphical model, which incorporates (1) data acquisition rate to
+    explain non-normality in peptide quantity and hidden biases in
+    classical test statistics, and (2) ionization efficiency explains
+    statistical dependence between fragment ion intensities corresponding
+    to a precursor peptide. Then, we propose a nonparametric statistical
+    method for testing group mean differences in bottom-up proteomics. It
+    estimates covariance matrices between fragment ion intensities to
+    accurately estimate their correlation and address statistical
+    dependence. A nonparametric shrinkage approach is used to cope with
+    small sample sizes and avoid ovefitting, because typical MS
+    experiments produce a very low number of replicates (e.g., 3 or 4). In
+    addition, we propose a bootstrap approach for accurate hyperparameter
+    estimation.
 License: Apache License (>= 2)
 Depends:
     R (>= 4.3.0)
@@ -41,6 +39,8 @@ Imports:
     MASS (>= 7.3-60),
     reshape (>= 0.8.9),
     stats (>= 4.3.0)
+Suggests: 
+    lintr
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
