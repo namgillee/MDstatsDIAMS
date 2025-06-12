@@ -1,9 +1,11 @@
 #' Standard error of estimate for shrinkage-based t-test statistic.
 #'
-#' Standard error constitutes the numerator of the test statistic formula.
-#' The estimate for shrinkage-based t-test is the sum of diff over fragment
-#' ions, where diff for a fragment ion is defined by
-#' \eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}}.
+#' Standard error appears in the the denominator of the test statistic formula.
+#' In the shrinkage-based t-test, the estimate of group mean difference is the
+#' sum of \eqn{d_i} across fragment ions \eqn{i}, where
+#' \eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}},
+#' with \eqn{\bar{x}_{1i}} and \eqn{\bar{x}_{2i}} representing the mean
+#' quantities for fragment ion \eqn{i} in groups 1 and 2, respectively.
 #' @param dat_con1,dat_con2  Data matrices of normalized fragment ion peak area
 #'   in logarithmic scale, \eqn{x_{1ir}^p, x_{2ir}^p}. Each row is a replicate,
 #'   each column is a fragment ion.
@@ -48,6 +50,11 @@ se_diff_shrink <- function(
   }
 
   # Compute covariance matrix
+  # Warnings are suppressed -- The corpcor::cov.shrink() raises a warning when
+  # it detects "any variable with zero scale" in the input data matrix, i.e.,
+  # when any column is constant. Nevertheless, the shrinkage estimation method
+  # still produces valid covariance estimates with finite values, avoiding NA or
+  # NaN entries.
   suppressWarnings(
     covmat <- corpcor::cov.shrink(
       dat, lambda.var = lambda_var, verbose = verbose

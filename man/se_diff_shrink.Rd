@@ -33,8 +33,10 @@ covariance matrix is computed.}
 standard error of the sum of mean differences
 }
 \description{
-Standard error constitutes the numerator of the test statistic formula.
-The estimate for shrinkage-based t-test is the sum of diff over fragment
-ions, where diff for a fragment ion is defined by
-\eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}}.
+Standard error appears in the the denominator of the test statistic formula.
+In the shrinkage-based t-test, the estimate of group mean difference is the
+sum of \eqn{d_i} across fragment ions \eqn{i}, where
+\eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}},
+with \eqn{\bar{x}_{1i}} and \eqn{\bar{x}_{2i}} representing the mean
+quantities for fragment ion \eqn{i} in groups 1 and 2, respectively.
 }
