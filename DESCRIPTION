@@ -9,7 +9,7 @@ Authors@R: c(
     person("Hojin", "Yoo", , "hojinyoo@bionsight.com", role = c("aut", "ctb")),
     person("Heejung", "Yang", , "heejyang@bionsight.com", role = "aut")
   )
-Description:There is a greater need for statistically methodologies to
+Description: There is a greater need for statistically methodologies to
     detect differentially abundant proteomic substrates
     (proteins/peptides), as quantitative measurements across multiple
     conditions and biological replicates are increasing using
@@ -31,6 +31,7 @@ License: Apache License (>= 2)
 Depends:
     R (>= 4.3.0)
 Imports:
+    arrow,
     boot (>= 1.3),
     colorspace (>= 2.1),
     corpcor (>= 1.6.9),
@@ -38,6 +39,7 @@ Imports:
     dplyr (>= 1.1.4),
     MASS (>= 7.3-60),
     reshape (>= 0.8.9),
+    Rfast,
     stats (>= 4.3.0)
 Suggests: 
     lintr
