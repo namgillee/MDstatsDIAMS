@@ -27,9 +27,9 @@
 }
 
 
-#' Compute and attach cov_unequal_replicates
+#' Compute cov_unequal_replicates
 #'
-#' Compute cov_unequal_replicates by each protein, and attach it into a new
+#' Compute cov_unequal_replicates by each protein, and append it into a new
 #' column. The fragment_ion_peak area is first summarized to
 #' log10_peptide_quantity in precursor level. It is then used for estimating
 #' a mixture of normal and expbeta distributions by each protein.
@@ -157,38 +157,38 @@ run_ttests <- function(
   report <- compute_cov_unequal_replicates(report)
 
   # Run t-test methods with two conditions
-  con_rest <- conditions[conditions != base_condition]
-  n_comparison <- length(con_rest)
+  cond_rest <- conditions[conditions != base_condition]
+  n_comparison <- length(cond_rest)
 
-  test_results <- lapply(
-    method_names,
-    function(method_name) {
-      method_func <- method_name_func[[method_name]]
+  ## 1. Iterate across method_names
+  test_results <- vector("list", length(method_names))
+  names(test_results) <- method_names
+  for (method_name in method_names) {
+    method_func <- method_name_func[[method_name]]
 
-      method_result <- vector("list", n_comparison)
-      names(method_result) <- paste0(base_condition, "/", con_rest)
-      for (cond in con_rest) {
-        comparison <- paste0(base_condition, "/", cond)
+    ## 2. Iterate across comparisons
+    method_results <- vector("list", n_comparison)
+    names(method_results) <- paste0(base_condition, "/", cond_rest)
+    for (cond in cond_rest) {
+      comparison <- paste0(base_condition, "/", cond)
 
-        report_twoconds <- report %>% filter(
-          report$condition %in% c(base_condition, cond)
+      report_twoconds <- report %>% filter(
+        report$condition == base_condition | report$condition == cond
+      )
+
+      result0 <- NULL
+      if (method_name != "shrinkage") {
+        result0 <- method_func(report_twoconds)
+      } else {
+        result0 <- method_func(
+          report_twoconds, boot_denom_eps = boot_denom_eps
         )
-
-        result0 <- NULL
-        if (method_name != "shrinkage") {
-          result0 <- method_func(report_twoconds)
-        } else {
-          result0 <- method_func(
-            report_twoconds, boot_denom_eps = boot_denom_eps
-          )
-        }
-
-        method_result[[comparison]] <- result0
       }
-      return(method_result)
-    }
-  )
 
+      method_results[[comparison]] <- result0
+    }
+    test_results[[method_name]] <- method_results
+  }
   return(test_results)
 }
 
@@ -196,8 +196,8 @@ run_ttests <- function(
 #' Compute contingency tables
 #'
 #' Compute contingency tables based on the results of running t-test methods.
-#' @param results_run_ttests results of run_ttest function, which is a list of
-#'   analysis results of each method.
+#' @param results_run_ttests results of run_ttest function, which is a named
+#'   list of analysis results of each method.
 #' @param alpha significance level
 #' @return list of contingency tables for every comparisons. Each element of
 #'   the list is a table, whose columns are the t-test methods and the rows are

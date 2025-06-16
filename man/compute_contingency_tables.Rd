@@ -7,8 +7,8 @@
 compute_contingency_tables(results_run_ttests, alpha = 0.05)
 }
 \arguments{
-\item{results_run_ttests}{results of run_ttest function, which is a list of
-analysis results of each method.}
+\item{results_run_ttests}{results of run_ttest function, which is a named
+list of analysis results of each method.}
 
 \item{alpha}{significance level}
 }
