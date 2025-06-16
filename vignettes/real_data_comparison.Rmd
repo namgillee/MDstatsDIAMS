@@ -1,0 +1,126 @@
+---
+title: 'MDstatsDIAMS: Real Data Comparison of Methods for Testing Mean Differences'
+author:
+  - Namgil Lee^[Kangwon National University, and Bionsight Inc., namgil.lee@kangwon.ac.kr], Hojin Yoo^[Bionsight Inc.], Juhyoung Kim^[Kangwon National University], Heejung Yang^[Kangwon National University, and Bionsight Inc., heejyang@kangwon.ac.kr]
+date: "June 14, 2025"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: show
+---
+
+This vignette includes numerical comparison of the methods for testing mean differences using real DIA-MS data given in a
+Spectronaut report. This vignette reproduces figures and tables in Section 3.2 Mass Spectrometry Data Analysis of the paper "*A Shrinkage-based Statistical Method for Testing Group Mean Differences in Quantitative Bottom-up Proteomics*" written by the authors.
+
+## Preparation 
+
+1. Set parameters to reduce analysis time
+
+Because the real data size can be too large, users can choose
+parameters to reduce analysis time in this vignette.
+
+```{r set_analysis_scale}
+# n_protein:
+#   Size of a subset of proteins randomly selected.
+#   If -1 or Inf, include all proteins. Default to 100.
+n_protein <- 100
+
+# remove_intermediate_reports:
+#   If TRUE, remove report from environment if not used in further steps. 
+#   Default to FALSE.
+remove_intermediate_reports <- FALSE
+```
+
+2. Load packages.
+
+```{r load_package, message=FALSE}
+library(dplyr)
+library(MDstatsDIAMS)
+```
+
+3. Load Report Data
+
+Load a Spectronaut report from a remote repository.
+
+```{r read_report}
+df_real <- arrow::read_parquet(
+  paste0(
+    "https://zenodo.org/records/15653980/files/",
+    "lip_quant_staurosporine_hela_sn_report.parquet"
+  )
+)
+```
+
+4. Filter the report and convert to standard format
+
+* If the DIA report is not a Spectronaut report, use MSstats converter first, then run convert_msstats_to_standard() to convert the MSstats report to standard format.
+
+```{r filter_report}
+df_filtered <- convert_sn_to_standard(df_real, filter_identified = TRUE)
+
+print(dim(df_filtered))
+```
+
+5. Randomly select a subset of the predefined number of proteins to reduce analysis time.
+
+```{r choose_report_subset}
+if (
+  n_protein < 0
+  || is.infinite(n_protein) 
+  || n_protein >= n_distinct(df_filtered)
+) {
+  df_subset = df_filtered
+} else {
+  set.seed(111)
+  protein_subset = sample(unique(df_filtered$protein_id), n_protein)
+  df_subset = df_filtered %>% filter(protein_id %in% protein_subset)
+}
+
+print(dim(df_subset))
+```
+
+6. Remove the large report data from the R environment that will not be used in the next steps.
+
+```{r remove_intermediate, echo=FALSE}
+if (isTRUE(remove_intermediate_reports)) {
+  rm(df_real, df_filtered)
+}
+```
+
+
+## Comparison Between Control and Treatment
+
+* Statistical methods for comparing between two conditions, control (DMSO) and treatment (100 uM), are evaluated.
+
+```{r run_methods}
+# Select two conditions
+condition_levels <- levels(df_subset$condition)
+id_control <- 1
+id_treat = 8
+print(paste("Comparing mean differences between two conditions:", 
+            condition_levels[id_control],
+            condition_levels[id_treat]))
+
+df_two_conds <- df_subset %>%
+  filter(condition %in% condition_levels[c(id_control, id_treat)])
+
+# Append a column of 'cov_unequal_replicates' values
+df_two_conds <- compute_cov_unequal_replicates(df_two_conds)
+
+print(paste("cov_unequal_replicates value:",
+            df_two_conds$cov_unequal_replicates[1]))
+
+# Run Methods
+resu <- run_ttests(
+  df_two_conds,
+  method_names = c("shrinkage"),
+  boot_denom_eps = 0.3,
+  base_condition = condition_levels[id_control]
+)
+tables <- compute_contingency_tables(resu, alpha = 0.05)
+
+```
+
+

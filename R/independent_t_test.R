@@ -43,3 +43,74 @@ independent_t_test <- function(
   )
   return(result)
 }
+
+
+#' Wrapper function for independent samples t-test
+#'
+#' @param groupdf A subset of precursor report which contains two columns for
+#' log10-transformed precursor quantities of conditions x and y
+#' @param column_x column name for x
+#' @param column y column name for y
+#' @return a data frame of the independent samples t-test results
+compute_indep_on_group <- function(
+  groupdf,
+  column_x = "Log10Quantity.x",
+  column_y = "Log10Quantity.y"
+) {
+  as.data.frame(
+    independent_t_test(
+      groupdf[[column_x]],
+      groupdf[[column_y]],
+      verbose = FALSE
+    )
+  )
+}
+
+
+#' Run independent samples t-test comparing two conditions on a standard report
+#'
+#' @param report fragment ion report with the columns experiment, condition,
+#'   replicate, protein_id, precursor_id, and fragment_peak_area.
+#'   The condition column is supposed to consist of two conditions.
+#' @return a data frame of the test results. Columns are independent_t_test
+#'   results, and rows are precursors.
+#' @export
+compute_indep_on_stdreport <- function(report) {
+  df_indep <- report %>%
+    dplyr::group_by(
+      .data$experiment,
+      .data$protein_id,
+      .data$precursor_id,
+      .data$replicate,
+      .data$condition
+    ) %>%
+    dplyr::summarise(
+      log10_peptide_quantity = log10(
+        sum(
+          .data$fragment_peak_area,
+          na.rm = TRUE
+        )
+      )
+    ) %>%
+    reshape::cast(
+      experiment + protein_id + precursor_id + replicate ~ condition,
+      value = "log10_peptide_quantity",
+      fun.aggregate = mean,
+      na.rm = TRUE
+    )
+
+  colnames(df_indep)[c(5, 6)] <- c(
+    "Log10Quantity.x", "Log10Quantity.y"
+  )
+
+  result_indep0 <- df_indep %>%
+    dplyr::group_by(
+      .data$experiment,
+      .data$protein_id,
+      .data$precursor_id
+    ) %>%
+    dplyr::group_modify(~compute_indep_on_group(.x)) %>%
+    as.data.frame()
+
+  return(result_indep0)
+}

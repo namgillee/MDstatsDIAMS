@@ -4,20 +4,33 @@
 \alias{run_ttests}
 \title{Run t-test methods}
 \usage{
-run_ttests(report, boot_denom_eps = 0.5, base_condition = NULL)
+run_ttests(
+  report,
+  method_names = NULL,
+  boot_denom_eps = 0.3,
+  base_condition = NULL
+)
 }
 \arguments{
-\item{report}{fragment ion report with the columns experiment, condition,
+\item{report}{Fragment ion report with the columns experiment, condition,
 replicate, protein_id, precursor_id, fragment_id, fragment_peak_area.}
 
-\item{boot_denom_eps}{a parameter for shrinkage t-test}
+\item{method_names}{A vector of characters for the method names to execute.
+If NULL, it is set to all the method names available. Defaults to NULL.}
+
+\item{boot_denom_eps}{A parameter for shrinkage t-test.}
+
+\item{base_condition}{Base condition. If NULL, the first condition among the
+unique list of the condition column is selected. Default to NULL.}
 }
 \value{
-a list of analysis results of three t-test methods, where the result
-of each method is a list for the pairwise comparisons.
+A list of analysis results of the given methods. For each method,
+the result is a list of the pairwise comparisons.
 }
 \description{
-Run t-test methods for the pairwise comparisons: 1-2, 1-3, ..., 1-C.
+Run t-test methods for the pairwise comparisons:
+cond1 / cond2, cond1 / cond3, ..., cond1 / cond_C,
+where cond1 is called the base condition.
 Each pairwise comparisons are performed on each
 experiment x protein_id x precursor_id.
 }
