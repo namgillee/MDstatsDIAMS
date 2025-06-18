@@ -201,28 +201,27 @@ run_ttests <- function(
 #' @param alpha significance level
 #' @return list of contingency tables for every comparisons. Each element of
 #'   the list is a table, whose columns are the t-test methods and the rows are
-#'   TRUE/FALSE representing whether H0 is rejected or not.
+#'   FALSE/TRUE, where FALSE represents that null hypothesis is not rejected,
+#'.  and TRUE represents rejected.
 #' @export
-compute_contingency_tables <- function(results_run_ttests, alpha = 0.05) {
-  id_methods <- names(results_run_ttests)
-  id_comparisons <- names(results_run_ttests[[1]])
+compute_contingency_tables <- function(test_results, alpha = 0.05) {
+  method_names <- names(test_results)
+  comparisons <- names(test_results[[1]])
 
-  tab_result <- vector("list", length(id_comparisons))
-  names(tab_result) <- id_comparisons
+  contingency_tables <- vector("list", length(comparisons))
+  names(contingency_tables) <- comparisons
 
-  for (id in id_comparisons) {
+  for (comparison in comparisons) {
     tab_result_comparison <- data.frame(Rejected = c(FALSE, TRUE))
 
-    for (method in id_methods) {
-      result_method <- results_run_ttests[[method]]
+    for (method_name in method_names) {
+      result_method <- test_results[[method_name]]
 
       # Compute contingency tables of every methods
       tab_method_comparison <- data.frame(
-        table(
-          result_method[[id]]$p.value < alpha
-        )
+        table(result_method[[comparison]]$p.value < alpha)
       )
-      names(tab_method_comparison) <- c("Rejected", method)
+      names(tab_method_comparison) <- c("Rejected", method_name)
 
       # Collect contingency tables
       tab_result_comparison <- merge(
@@ -235,10 +234,10 @@ compute_contingency_tables <- function(results_run_ttests, alpha = 0.05) {
 
     tab_result_comparison[is.na(tab_result_comparison)] <- 0
 
-    tab_result[[id]] <- tab_result_comparison
+    contingency_tables[[comparison]] <- tab_result_comparison
   }
 
-  return(tab_result)
+  return(contingency_tables)
 }
 
 
