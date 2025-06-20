@@ -24,8 +24,8 @@ If NULL, it is set to all the method names available. Defaults to NULL.}
 unique list of the condition column is selected. Default to NULL.}
 }
 \value{
-A list of analysis results of the given methods. For each method,
-the result is a list of the pairwise comparisons.
+A list of analysis results of the given methods. Each analysis result
+is a list of pairwise comparison results.
 }
 \description{
 Run t-test methods for the pairwise comparisons:

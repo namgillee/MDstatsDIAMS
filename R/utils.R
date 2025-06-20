@@ -113,8 +113,8 @@ compute_cov_unequal_replicates <- function(report_df) {
 #' @param base_condition Base condition. If NULL, the first condition among the
 #'   unique list of the condition column is selected. Default to NULL.
 #' @importFrom dplyr %>%
-#' @return A list of analysis results of the given methods. For each method,
-#'   the result is a list of the pairwise comparisons.
+#' @return A list of analysis results of the given methods. Each analysis result
+#'   is a list of pairwise comparison results.
 #' @export
 run_ttests <- function(
   report, method_names = NULL, boot_denom_eps = 0.3, base_condition = NULL
@@ -196,15 +196,19 @@ run_ttests <- function(
 #' Compute contingency tables
 #'
 #' Compute contingency tables based on the results of running t-test methods.
-#' @param results_run_ttests results of run_ttest function, which is a named
+#' @param test_results Results of run_ttest function, which is a named
 #'   list of analysis results of each method.
-#' @param alpha significance level
-#' @return list of contingency tables for every comparisons. Each element of
+#' @param alpha Significance level
+#' @param q_value_column Name of the column having significance levels: A
+#'   smaller value implies more significance.
+#' @return List of contingency tables for every comparisons. Each element of
 #'   the list is a table, whose columns are the t-test methods and the rows are
 #'   FALSE/TRUE, where FALSE represents that null hypothesis is not rejected,
 #'.  and TRUE represents rejected.
 #' @export
-compute_contingency_tables <- function(test_results, alpha = 0.05) {
+compute_contingency_tables <- function(
+  test_results, alpha = 0.05, q_value_column = "p.value"
+) {
   method_names <- names(test_results)
   comparisons <- names(test_results[[1]])
 
@@ -219,7 +223,7 @@ compute_contingency_tables <- function(test_results, alpha = 0.05) {
 
       # Compute contingency tables of every methods
       tab_method_comparison <- data.frame(
-        table(result_method[[comparison]]$p.value < alpha)
+        table(result_method[[comparison]][[q_value_column]] < alpha)
       )
       names(tab_method_comparison) <- c("Rejected", method_name)
 

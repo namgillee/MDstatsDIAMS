@@ -94,7 +94,7 @@ print(levels(df_filtered$R.Condition))
 if (
   n_protein < 0
   || is.infinite(n_protein) 
-  || n_protein >= n_distinct(df_filtered)
+  || n_protein >= n_distinct(df_filtered$PG.ProteinGroups)
 ) {
   df_subset = df_filtered
 } else {

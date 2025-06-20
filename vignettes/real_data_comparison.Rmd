@@ -33,16 +33,16 @@ n_protein <- 100
 remove_intermediate_reports <- FALSE
 ```
 
-2. Load packages.
+2. Load packages
 
 ```{r load_package, message=FALSE}
 library(dplyr)
 library(MDstatsDIAMS)
 ```
 
-3. Load Report Data
+3. Load report data and target list
 
-Load a Spectronaut report from a remote repository.
+Load a Spectronaut report and an on-target protein list from a remote repository.
 
 ```{r read_report}
 df_real <- arrow::read_parquet(
@@ -51,11 +51,25 @@ df_real <- arrow::read_parquet(
     "lip_quant_staurosporine_hela_sn_report.parquet"
   )
 )
+
+known_target_df <- read.csv(
+  paste0(
+    "https://zenodo.org/records/15653980/files/",
+    "known_target_list_staurosporine_davis2011.csv"
+  )
+)
 ```
 
 4. Filter the report and convert to standard format
 
-* If the DIA report is not a Spectronaut report, use MSstats converter first, then run convert_msstats_to_standard() to convert the MSstats report to standard format.
+* A Spectronaut report can be converted to the standard format using
+  'convert_sn_to_standard()'.
+* Other DIA report formats, such as FragPipe, MaxQuant, Skyline, can be
+  converted to MSstats format by
+  [MSstatsConvert::MSstatsImport()]
+  (https://rdrr.io/bioc/MSstatsConvert/man/MSstatsImport.html), then,
+  it can be converted into the standard format using
+  'convert_msstats_to_standard()'.
 
 ```{r filter_report}
 df_filtered <- convert_sn_to_standard(df_real, filter_identified = TRUE)
@@ -63,13 +77,14 @@ df_filtered <- convert_sn_to_standard(df_real, filter_identified = TRUE)
 print(dim(df_filtered))
 ```
 
-5. Randomly select a subset of the predefined number of proteins to reduce analysis time.
+5. Randomly select a subset of the predefined number of proteins to reduce
+analysis time.
 
 ```{r choose_report_subset}
 if (
   n_protein < 0
   || is.infinite(n_protein) 
-  || n_protein >= n_distinct(df_filtered)
+  || n_protein >= n_distinct(df_filtered$protein_id)
 ) {
   df_subset = df_filtered
 } else {
@@ -92,35 +107,122 @@ if (isTRUE(remove_intermediate_reports)) {
 
 ## Comparison Between Control and Treatment
 
-* Statistical methods for comparing between two conditions, control (DMSO) and treatment (100 uM), are evaluated.
+1. Select two conditions
+
+```{r select_conditions}
+control_condition <- "DMSO"
+treat_condition <- "100mM"
+```
+
+
+2. Run statistical methods for comparing the means between two conditions,
+control (DMSO) and treatment (100 uM).
+
+* Select a subset of the report for two conditions, control (DMSO) and treatment
+  (100 uM)
+
+```{r filter_two_conditions}
+df_two_conds <- df_subset %>%
+  filter(condition %in% c(control_condition, treat_condition))
+
+print(paste("Comparing mean differences between two conditions:", 
+            control_condition,
+            treat_condition))
+```
+
+* Run statisical methods.
 
 ```{r run_methods}
-# Select two conditions
-condition_levels <- levels(df_subset$condition)
-id_control <- 1
-id_treat = 8
-print(paste("Comparing mean differences between two conditions:", 
-            condition_levels[id_control],
-            condition_levels[id_treat]))
-
-df_two_conds <- df_subset %>%
-  filter(condition %in% condition_levels[c(id_control, id_treat)])
-
-# Append a column of 'cov_unequal_replicates' values
+# Append a column 'cov_unequal_replicates'
 df_two_conds <- compute_cov_unequal_replicates(df_two_conds)
 
 print(paste("cov_unequal_replicates value:",
             df_two_conds$cov_unequal_replicates[1]))
 
-# Run Methods
-resu <- run_ttests(
+# Run methods
+# Resu is a list of method results; each method result is a list of
+# comparison(== two conditions) results.
+ttest_result <- run_ttests(
   df_two_conds,
-  method_names = c("shrinkage"),
+  method_names = NULL,
   boot_denom_eps = 0.3,
-  base_condition = condition_levels[id_control]
+  base_condition = control_condition
 )
-tables <- compute_contingency_tables(resu, alpha = 0.05)
-
 ```
+
+
+3. Append local FDR score and on-target information
+
+```{r compute_lfdr}
+lfdr_result <- ttest_result
+
+for (method_name in names(lfdr_result)) {
+  for (comparison in names(lfdr_result[[method_name]])) {
+    p.value <- lfdr_result[[method_name]][[comparison]]$p.value
+    protein_id <- lfdr_result[[method_name]][[comparison]]$protein_id
+    
+    lfdr <- local_fdr(p.value)
+    is_target <- (protein_id %in% known_target_df$UniprotID)
+    
+    lfdr_result[[method_name]][[comparison]]$lfdr <- lfdr
+    lfdr_result[[method_name]][[comparison]]$is_target <- is_target
+  }
+}
+```
+
+4. Compute sensitivity and specificity from the local fdr results
+
+```{r sensitivity_result}
+protein_sensitivity_result <- compute_sensitivity_result(
+  lfdr_result,
+  q_value_column = 'lfdr',
+  is_target_column = 'is_target',
+  group_column = c('experiment' , 'protein_id')
+)
+```
+
+* Print sensitivity and specificity in a brief form
+
+```{r print_sensitivity}
+print(paste("Comparison:", control_condition, "/", treat_condition))
+
+spec_levels <- seq(0.8, 0.2, -0.2)
+sens_matrix <- matrix(
+  NA, length(protein_sensitivity_result), length(spec_levels),
+  dimnames = list(names(protein_sensitivity_result), spec_levels)
+)
+
+for (level in spec_levels) {
+  for (method in names(protein_sensitivity_result)) {
+    sensitivity_table <- protein_sensitivity_result[[method]][[1]]
+    spec_id_at_level <- max(which(sensitivity_table$specificity > level))
+    sens_at_level <- sensitivity_table$sensitivity[spec_id_at_level]
+    sens_matrix[method, as.character(level)] <- sens_at_level
+  }
+}
+
+print(round(sens_matrix, 2))
+```
+
+5. Print contingency table at fixed significance level
+
+```{r contingency_table_lfdr, echo=FALSE}
+print("---------- Significance level: 0.10 ----------")
+tables10 <- compute_contingency_tables(lfdr_result, 0.10, "lfdr")
+print(tables10)
+
+print("---------- Significance level: 0.05 ----------")
+tables05 <- compute_contingency_tables(lfdr_result, 0.05, "lfdr")
+print(tables05)
+
+print("---------- Significance level: 0.01 ----------")
+tables01 <- compute_contingency_tables(lfdr_result, 0.01, "lfdr")
+print(tables01)
+```
+
+## Testing Across Multiple Conditions
+
+
+
 
 

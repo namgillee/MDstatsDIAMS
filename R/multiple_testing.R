@@ -33,20 +33,19 @@ local_fdr <- function(
 #' @param q_values Significance levels. Smaller value implies more significance.
 #' @param random_seed Random seed. Used for shuffling input values.
 #' @return data frame of nine metrics: total, total_pos, total_neg, count_p,
-#'   count_tp, count_fp, count_fn, specificity, sensitivity. The count_p
-#'   increases from 1 to total across rows.
-#' @export
-compute_sensitivity_specificity_table <- function(
-  is_target, q_values, random_seed = 11111
+#'   count_tp, count_fp, count_fn, specificity, sensitivity. The count_p is
+#'   a vector of the number of positives, which increases from 1 to total.
+.compute_sensitivity_table <- function(
+  is_target, q_values, random_seed = 1111
 ) {
-  idx_not_na <- !is.na(is_target) & !is.na(q_values)
-  is_target <- is_target[idx_not_na]
-  q_values <- q_values[idx_not_na]
-
   if (length(is_target) != length(q_values)) {
     warning("Length of is_target must be equal to that of q_values.")
     return(NULL)
   }
+
+  idx_not_na <- !is.na(is_target) & !is.na(q_values)
+  is_target <- is_target[idx_not_na]
+  q_values <- q_values[idx_not_na]
 
   count_p <- count_tp <- count_fp <- count_fn <- specificity <- sensitivity <-
     double(length = length(q_values))
@@ -56,11 +55,9 @@ compute_sensitivity_specificity_table <- function(
   count_p <- 1 : total
   total_neg <- sum(!is_target)
   total_pos <- sum(is_target)
-  
+
   ## variables
-  ## Shuffling in this code block can be necessary when q-values has many
-  ## duplicates. Once shuffled, re-ordering in the next line does not change
-  ## the order within duplicated values.
+  ## Shuffling values is necessary when q-values has many duplicated values.
   set.seed(random_seed)
   count_tp <- rep(0, total)
   for (rep in 1:100) {
@@ -73,10 +70,73 @@ compute_sensitivity_specificity_table <- function(
   specificity <- (total_neg - count_fp) / total_neg
   sensitivity <- count_tp / total_pos
 
-  return(
-    data.frame(
-      total, total_pos, total_neg, count_p, count_tp, count_fp, count_fn,
-      specificity, sensitivity
-    )
-  )
+  return(data.frame(total, total_pos, total_neg, count_p, count_tp, count_fp,
+                    count_fn, specificity, sensitivity))
+}
+
+
+#' Compute sensitivity and specificity from statistical significance result
+#'
+#' @param lfdr_result A list of lists of statistical test result tables,
+#'   which are obtained by run_ttest(), but each result table has two
+#'   additional columns specified by 'is_target_column' and 'q_value_column'.
+#' @param is_target_column Name of the column having a boolean vector for
+#'   labeling true target.
+#' @param q_value_column Name of the column having significance levels: A
+#'   smaller value implies more significance.
+#' @param group_column Names of the columns for grouping the rows. Defaults
+#'   to c('experiment', 'protein_id')
+#' @param random_seed Random seed. Used for shuffling input values.
+#' @return A list of lists of data frames having nine metrics:
+#'   total, total_pos, total_neg, count_p, count_tp, count_fp, count_fn,
+#'   specificity, sensitivity. The count_p is a vector of the number of
+#'   positives, which is set to increase from 1 to total.
+compute_sensitivity_result <- function(
+  lfdr_result,
+  is_target_column = "is_target",
+  q_value_column = "lfdr",
+  group_column = c("experiment", "protein_id"),
+  random_seed = 11111
+) {
+  minimum_with_na <- function(values) {
+    ifelse(all(is.na(values)), NA, min(values, na.rm = TRUE))
+  }
+
+  # Iterate for each method
+  sensitivity_result <- lapply(lfdr_result, function(method_result) {
+    # Iterate for each comparison
+    lapply(method_result, function(comparison_table) {
+      # Group rows & summarize with p.value & lfdr
+      grouped_table <- comparison_table %>%
+        dplyr::group_by_at(group_column) %>%
+        dplyr::summarize_at(
+          unique(c("p.value", q_value_column)),
+          minimum_with_na
+        )
+      # Below lines may be redundant but remain here to deal with unexpected.
+      grouped_table[["p.value"]][
+        is.infinite(grouped_table[["p.value"]])
+      ] <- NA
+      grouped_table[[q_value_column]][
+        is.infinite(grouped_table[[q_value_column]])
+      ] <- NA
+
+      # Append is_target column
+      target_table <- comparison_table %>%
+        dplyr::group_by_at(group_column) %>%
+        dplyr::summarize_at(is_target_column, first)
+
+      grouped_table <- grouped_table %>%
+        dplyr::left_join(target_table, by = group_column)
+
+      # Compute sensitivity table
+      sensitivity_table <- .compute_sensitivity_table(
+        is_target = grouped_table[[is_target_column]],
+        q_values = grouped_table[[q_value_column]],
+        random_seed = random_seed
+      )
+      return(sensitivity_table)
+    })
+  })
+  return(sensitivity_result)
 }
