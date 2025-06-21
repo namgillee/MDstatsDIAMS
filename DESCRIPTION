@@ -39,6 +39,7 @@ Imports:
     dplyr (>= 1.1.4),
     fdrtool,
     MASS (>= 7.3-60),
+    pROC,
     reshape (>= 0.8.9),
     Rfast,
     stats (>= 4.3.0)
