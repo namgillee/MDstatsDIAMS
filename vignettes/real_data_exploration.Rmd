@@ -267,7 +267,7 @@ histout = hist(lquant_mean,
 mn_est = histout$mids[order(histout$counts, decreasing = TRUE)[1]]
 sd_est = IQR(lquant_mean) / (qnorm(0.75) - qnorm(0.25))
 lines(seq(0, 10, 0.05), 
-      length(lquant_mean)* resolution * dnorm(seq(0, 10, 0.05), mn_est, sd_est), 
+      length(lquant_mean) * resolution * dnorm(seq(0, 10, 0.05), mn_est, sd_est), 
       lwd = 2, col = "red", lty = 2)
 legend("topright", legend=c("Empirical Density", "Normal Density"), 
        pch = c(0, NA), lty = c(0, 2), col = c("black", "red"), 
@@ -286,7 +286,7 @@ histout = hist(lquant_deviation,
 mn_est = median(lquant_deviation)
 sd_est = IQR(lquant_deviation) / (qnorm(0.75) - qnorm(0.25))
 lines(seq(-4.2, 4.2, 0.01), 
-      length(lquant)* resolution * dnorm(seq(-4.2, 4.2, 0.01), mn_est, sd_est), 
+      length(lquant_deviation) * resolution * dnorm(seq(-4.2, 4.2, 0.01), mn_est, sd_est), 
       lwd = 2, col = "red", lty = 2)
 legend("topright", legend=c("Empirical Density", "Normal Density"), 
        pch = c(0, NA), lty = c(0, 2), col = c("black", "red"), 
