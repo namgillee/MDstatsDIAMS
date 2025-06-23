@@ -1,0 +1,305 @@
+---
+title: 'MDstatsDIAMS: Real Data Comparison of Methods for Testing Mean Differences'
+author:
+  - Namgil Lee^[Kangwon National University, and Bionsight Inc., namgil.lee@kangwon.ac.kr], Hojin Yoo^[Bionsight Inc.], Juhyoung Kim^[Kangwon National University], Heejung Yang^[Kangwon National University, and Bionsight Inc., heejyang@kangwon.ac.kr]
+date: "June 14, 2025"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: show
+---
+
+This vignette includes numerical comparison of the methods for testing mean differences using real DIA-MS data given in a
+Spectronaut report. This vignette reproduces figures and tables in Section 3.2 Mass Spectrometry Data Analysis of the paper "*A Shrinkage-based Statistical Method for Testing Group Mean Differences in Quantitative Bottom-up Proteomics*" written by the authors.
+
+## Preparation 
+
+1. Set parameters to reduce analysis time
+
+Because the real data size can be too large, users can choose
+parameters to reduce analysis time in this vignette.
+
+```{r set_analysis_scale}
+# n_protein:
+#   Size of a subset of proteins randomly selected.
+#   If -1 or Inf, include all proteins. Default to 100.
+n_protein <- 100
+
+# remove_intermediate_reports:
+#   If TRUE, remove report from environment if not used in further steps. 
+#   Default to FALSE.
+remove_intermediate_reports <- FALSE
+```
+
+2. Load packages
+
+```{r load_package, message=FALSE}
+library(dplyr)
+library(MDstatsDIAMS)
+library(pROC)
+```
+
+3. Load report data and target list
+
+Load a Spectronaut report and an on-target protein list from a remote repository.
+
+```{r read_report}
+df_real <- arrow::read_parquet(
+  paste0(
+    "https://zenodo.org/records/15653980/files/",
+    "lip_quant_staurosporine_hela_sn_report.parquet"
+  )
+)
+
+known_target_df <- read.csv(
+  paste0(
+    "https://zenodo.org/records/15653980/files/",
+    "known_target_list_staurosporine_davis2011.csv"
+  )
+)
+```
+
+4. Filter the report and convert to standard format
+
+* A Spectronaut report can be converted to the standard format using
+  'convert_sn_to_standard()'.
+* Other DIA report formats, such as FragPipe, MaxQuant, Skyline, can be
+  converted to MSstats format by
+  [MSstatsConvert::MSstatsImport()]
+  (https://rdrr.io/bioc/MSstatsConvert/man/MSstatsImport.html), then,
+  it can be converted into the standard format using
+  'convert_msstats_to_standard()'.
+
+```{r filter_report}
+df_filtered <- convert_sn_to_standard(df_real, filter_identified = TRUE)
+
+print(dim(df_filtered))
+```
+
+5. Randomly select a subset of the predefined number of proteins to reduce
+analysis time.
+
+```{r choose_report_subset}
+if (
+  n_protein < 0
+  || is.infinite(n_protein) 
+  || n_protein >= n_distinct(df_filtered$protein_id)
+) {
+  df_subset = df_filtered
+} else {
+  set.seed(1111)
+  protein_subset = sample(unique(df_filtered$protein_id), n_protein)
+  df_subset = df_filtered %>% filter(protein_id %in% protein_subset)
+}
+
+print(dim(df_subset))
+```
+
+6. Remove the large report data from the R environment that will not be used in the next steps.
+
+```{r remove_intermediate, echo=FALSE}
+if (isTRUE(remove_intermediate_reports)) {
+  rm(df_real, df_filtered)
+}
+```
+
+
+## Comparison Between Control and Treatment
+
+1. Select two conditions
+
+```{r select_conditions}
+control_condition <- "DMSO"
+treat_condition <- "100mM"
+```
+
+
+2. Run statistical methods for comparing the means between two conditions,
+control (DMSO) and treatment (100 uM).
+
+* Select a subset of the report for two conditions, control (DMSO) and treatment
+  (100 uM)
+
+```{r filter_two_conditions}
+df_two_conds <- df_subset %>%
+  filter(condition %in% c(control_condition, treat_condition))
+
+print(paste("Comparing mean differences between two conditions:", 
+            control_condition,
+            treat_condition))
+```
+
+* Run statisical methods.
+
+```{r run_methods}
+# Append a column 'cov_unequal_replicates'
+df_two_conds <- compute_cov_unequal_replicates(df_two_conds)
+
+print(paste("cov_unequal_replicates value:",
+            df_two_conds$cov_unequal_replicates[1]))
+
+# Run methods
+# Resu is a list of method results; each method result is a list of
+# comparison(== two conditions) results.
+ttest_result <- run_ttests(
+  df_two_conds,
+  method_names = NULL,
+  boot_denom_eps = 0.3,
+  base_condition = control_condition
+)
+```
+
+
+3. Append local FDR score and on-target information
+
+```{r compute_lfdr}
+lfdr_result <- ttest_result
+
+for (method_name in names(lfdr_result)) {
+  for (comparison in names(lfdr_result[[method_name]])) {
+    p.value <- lfdr_result[[method_name]][[comparison]]$p.value
+    protein_id <- lfdr_result[[method_name]][[comparison]]$protein_id
+
+    lfdr <- local_fdr(p.value)
+    is_target <- (protein_id %in% known_target_df$UniprotID)
+
+    lfdr_result[[method_name]][[comparison]]$lfdr <- lfdr
+    lfdr_result[[method_name]][[comparison]]$is_target <- is_target
+  }
+}
+```
+
+4. Compute sensitivity and specificity from the local fdr results
+
+```{r sensitivity_result}
+protein_sensitivity_result <- compute_sensitivity_result(
+  lfdr_result,
+  q_value_column = 'lfdr',
+  is_target_column = 'is_target',
+  group_column = c('experiment' , 'protein_id')
+)
+```
+
+* Print sensitivity and specificity in a brief form
+
+```{r print_sensitivity}
+print(paste("Comparison:", control_condition, "/", treat_condition))
+
+spec_levels <- seq(0.8, 0.2, -0.2)
+sens_matrix <- matrix(
+  NA, length(protein_sensitivity_result), length(spec_levels),
+  dimnames = list(names(protein_sensitivity_result), spec_levels)
+)
+
+for (level in spec_levels) {
+  for (method in names(protein_sensitivity_result)) {
+    sensitivity_table <- protein_sensitivity_result[[method]][[1]]
+    spec_id_at_level <- max(which(sensitivity_table$specificity > level))
+    sens_at_level <- sensitivity_table$sensitivity[spec_id_at_level]
+    sens_matrix[method, as.character(level)] <- sens_at_level
+  }
+}
+
+print(round(sens_matrix, 2))
+```
+
+5. Print contingency table at fixed significance level
+
+```{r contingency_table_lfdr, echo=FALSE}
+print("---------- Significance level: 0.10 ----------")
+tables10 <- compute_contingency_tables(lfdr_result, 0.10, "lfdr")
+print(tables10)
+
+print("---------- Significance level: 0.05 ----------")
+tables05 <- compute_contingency_tables(lfdr_result, 0.05, "lfdr")
+print(tables05)
+
+print("---------- Significance level: 0.01 ----------")
+tables01 <- compute_contingency_tables(lfdr_result, 0.01, "lfdr")
+print(tables01)
+```
+
+## Testing Across Multiple Conditions
+
+* Aggregate p-values of consecutive comparisons
+
+```{r aggregate_pvalue, message=FALSE}
+subconditions <- c("DMSO", "10nM", "100nM", "100mM")
+
+protein_df_agg <- list()
+aucs <- c()
+
+### Collect p-values
+num_cond <- length(subconditions)
+for (i in 1:(num_cond - 1)) {
+  ## Compute p-value from consecutive conditions
+  df_two_conds0 <- df_subset %>%
+    filter(condition %in% c(subconditions[i], subconditions[i + 1]))
+
+  ttest_result0 <- run_ttests(
+    df_two_conds0,
+    method_names = NULL,
+    boot_denom_eps = 0.3,
+    base_condition = subconditions[i]
+  )
+
+  ## Compute "signed" p-value in precursor level
+  for (method in names(ttest_result0)) {
+    signed_pvalue_table <- ttest_result0[[method]][[1]] %>% 
+      select(experiment, protein_id, precursor_id, p.value, estimate) %>%
+      mutate(comparison_1 = subconditions[i],
+             comparison_2 = subconditions[i + 1],
+             sign_of_test = sign(estimate)) %>%
+      filter(!is.na(p.value))
+
+    # protein_df_agg[[method]] columns: experiment, protein_id, precursor_id,
+    #   p.value, estimate, comparison_1, comparison_2, sign_of_test
+    protein_df_agg[[method]] <- rbind(
+      protein_df_agg[[method]],
+      signed_pvalue_table
+    )
+  }
+}
+
+# Aggregate all the comparisons for each precursor
+for (method in names(protein_df_agg)) {
+  protein_df_agg[[method]] <- protein_df_agg[[method]] %>%
+    group_by(experiment, protein_id, precursor_id) %>%
+    mutate(sign_of_minimal_pvalue = sign_of_test[which.min(p.value)]) %>%
+    group_by(experiment, protein_id, precursor_id) %>%
+    mutate(prod_recomputed_pvalue = prod(
+      0.5 - sign_of_test * sign_of_minimal_pvalue * (0.5 - 0.5 * p.value),
+      na.rm = TRUE)) %>%
+    group_by(experiment, protein_id, precursor_id) %>%
+    summarise(p.value = sum(prod_recomputed_pvalue * 2, na.rm = TRUE))
+} ## experiment, protein_id, precursor_id, p.value
+
+# Aggregate to protein level
+for (method in names(protein_df_agg)) {
+  protein_df_agg[[method]] <- protein_df_agg[[method]] %>%
+    group_by(experiment, protein_id) %>%
+    summarise(p.value = min(p.value, na.rm = TRUE))
+}
+
+# Append on-target information
+for (method in names(protein_df_agg)) {
+  protein_df_agg[[method]]$is_target <- (
+    protein_df_agg[[method]]$protein_id %in% known_target_df$UniprotID
+  )
+
+  roc_prot <- pROC::roc(
+    protein_df_agg[[method]]$is_target,
+    1 - protein_df_agg[[method]]$p.value,
+    auc = TRUE,
+    plot = FALSE,
+    quiet = TRUE
+  )
+  aucs[method] <- roc_prot$auc
+}
+
+print(paste(c("Conditions:", subconditions), collapse = " "))
+print("AUCs:")
+print(aucs)
+```

@@ -1,98 +1,3 @@
-#' Wrapper function for paired t-test
-#'
-#' @param groupdf A subset of fragment ion report which contains two columns for
-#' log10-transformed fragment ion quantities of conditions x and y
-#' @param column_x column name for x
-#' @param column y column name for y
-#' @return a data frame of the paired t-test results
-#' @export
-compute_paired_on_group <- function(
-  groupdf,
-  column_x = "Log10NormalizedPeakArea.x",
-  column_y = "Log10NormalizedPeakArea.y"
-) {
-  as.data.frame(
-    paired_t_test(
-      groupdf[[column_x]],
-      groupdf[[column_y]],
-      verbose = FALSE
-    )
-  )
-}
-
-
-#' Wrapper function for independent samples t-test
-#'
-#' @param groupdf A subset of precursor report which contains two columns for
-#' log10-transformed precursor quantities of conditions x and y
-#' @param column_x column name for x
-#' @param column y column name for y
-#' @return a data frame of the independent samples t-test results
-#' @export
-compute_indep_on_group <- function(
-  groupdf,
-  column_x = "Log10Quantity.x",
-  column_y = "Log10Quantity.y"
-) {
-  as.data.frame(
-    independent_t_test(
-      groupdf[[column_x]],
-      groupdf[[column_y]],
-      verbose = FALSE
-    )
-  )
-}
-
-
-#' Wrapper function for shrinkage t-test
-#'
-#' @param groupdf A subset of precursor report which consists of two conditions.
-#'   It contains columns named "replicate", "fragment_id", "condition", and
-#'   a value column.
-#' @param value_column column name for log10-transformed fragment ion quantities
-#' @param cov_unequal_replicates_column column name for covariance of input
-#'   variables whose replicates are not equal. All entries in the column is
-#'   considered equal. If NULL, the covariance is set to zero.
-#' @param boot_denom_eps A parameter for shrinkage t-test
-#' @return a data frame of the shrinkage t-test results
-#' @export
-compute_shrink_on_group <- function(
-  groupdf,
-  value_column = "log10_fragment_peak_area",
-  cov_unequal_replicates_column = NULL,
-  boot_denom_eps = 0.5
-) {
-  if (length(unique(groupdf$condition)) < 2) {
-    return(as.data.frame(list()))
-  }
-
-  cov_unequal_replicates <- 0
-  if (!is.null(cov_unequal_replicates_column) &&
-        !is.null(groupdf[[cov_unequal_replicates_column]])) {
-    cov_unequal_replicates <- groupdf[[cov_unequal_replicates_column]][
-      !is.na(groupdf[[cov_unequal_replicates_column]])
-    ][1]
-  }
-
-  df_shrink <- groupdf %>%
-    reshape::cast(
-      replicate ~ fragment_id ~ condition,
-      value = value_column,
-      fun.aggregate = mean
-    )
-
-  dat_con1 <- as.matrix(df_shrink[, , 1])
-  dat_con2 <- as.matrix(df_shrink[, , 2])
-  dim(dat_con1) <- dim(dat_con2) <- dim(df_shrink)[1 : 2]
-
-  as.data.frame(shrinkage_t_test(
-    dat_con1, dat_con2, cov_unequal_replicates = cov_unequal_replicates,
-    num_boot = 100, cov_equal = TRUE, boot_denom_eps = boot_denom_eps,
-    verbose = FALSE
-  ))
-}
-
-
 #' Compute cov_unequal_replicates
 #'
 #' Compute cov_unequal_replicates from data values
@@ -122,14 +27,15 @@ compute_shrink_on_group <- function(
 }
 
 
-#' Compute and attach cov_unequal_replicates
+#' Compute cov_unequal_replicates
 #'
-#' Compute cov_unequal_replicates by each protein, and attach it into a new
+#' Compute cov_unequal_replicates by each protein, and append it into a new
 #' column. The fragment_ion_peak area is first summarized to
 #' log10_peptide_quantity in precursor level. It is then used for estimating
 #' a mixture of normal and expbeta distributions by each protein.
 #' @param report_df  a fragment ion report with multiple conditions and the
 #'   fragment_peak_area column
+#' @importFrom dplyr %>%
 #' @return  the report data frame with a new column "cov_unequal_replicates"
 #' @export
 compute_cov_unequal_replicates <- function(report_df) {
@@ -194,19 +100,51 @@ compute_cov_unequal_replicates <- function(report_df) {
 
 #' Run t-test methods
 #'
-#' Run t-test methods for the pairwise comparisons: 1-2, 1-3, ..., 1-C.
+#' Run t-test methods for the pairwise comparisons:
+#' cond1 / cond2, cond1 / cond3, ..., cond1 / cond_C,
+#' where cond1 is called the base condition.
 #' Each pairwise comparisons are performed on each
 #' experiment x protein_id x precursor_id.
-#' @param report fragment ion report with the columns experiment, condition,
+#' @param report Fragment ion report with the columns experiment, condition,
 #'   replicate, protein_id, precursor_id, fragment_id, fragment_peak_area.
-#' @param boot_denom_eps a parameter for shrinkage t-test
-#' @return a list of analysis results of three t-test methods, where the result
-#'   of each method is a list for the pairwise comparisons.
+#' @param method_names A vector of characters for the method names to execute.
+#'   If NULL, it is set to all the method names available. Defaults to NULL.
+#' @param boot_denom_eps A parameter for shrinkage t-test.
+#' @param base_condition Base condition. If NULL, the first condition among the
+#'   unique list of the condition column is selected. Default to NULL.
+#' @importFrom dplyr %>%
+#' @return A list of analysis results of the given methods. Each analysis result
+#'   is a list of pairwise comparison results.
 #' @export
-run_ttests <- function(report, boot_denom_eps = 0.5, base_condition = NULL) {
+run_ttests <- function(
+  report, method_names = NULL, boot_denom_eps = 0.3, base_condition = NULL
+) {
+  # List of available methods
+  method_name_func <- list(
+    paired = compute_paired_on_stdreport,
+    independent = compute_indep_on_stdreport,
+    shrinkage = compute_shrink_on_stdreport
+  )
+
+  # Set method names
+  if (is.null(method_names)) {
+    method_names <- names(method_name_func)
+  }
+  if (any(id_name_not_exist <- !(method_names %in% names(method_name_func)))) {
+    warning(
+      paste(
+        "Method names,",
+        method_names[id_name_not_exist],
+        ", do not exist.",
+        collapse = " "
+      )
+    )
+    method_names <- method_names[!id_name_not_exist]
+  }
+  print(paste(c("Running the test methods:", method_names), collapse = " "))
+
+  # Set base_condition
   conditions <- unique(report$condition)
-  n_con <- length(conditions)
-  report[["log10_fragment_peak_area"]] <- log10(report[["fragment_peak_area"]])
 
   if (is.null(base_condition)) {
     base_condition <- conditions[1]
@@ -215,156 +153,95 @@ run_ttests <- function(report, boot_denom_eps = 0.5, base_condition = NULL) {
     base_condition <- conditions[1]
   }
 
-  # Compute cov_unequal_replicates for shrinkage-t-test
+  # Compute cov_unequal_replicates for shrinkage t-test, creating a new column
   report <- compute_cov_unequal_replicates(report)
 
   # Run t-test methods with two conditions
-  con1 <- base_condition
-  con_rest <- conditions[conditions != con1]
-  result_paired <- result_indep <- result_shrink <- vector("list", n_con - 1)
-  names(result_paired) <- names(result_indep) <- names(result_shrink) <-
-    paste0(con1, "/", con_rest)
+  cond_rest <- conditions[conditions != base_condition]
+  n_comparison <- length(cond_rest)
 
-  for (con2 in con_rest) {
-    id <- paste0(con1, "/", con2)
+  ## 1. Iterate across method_names
+  test_results <- vector("list", length(method_names))
+  names(test_results) <- method_names
+  for (method_name in method_names) {
+    method_func <- method_name_func[[method_name]]
 
-    report_twoconds <- report[
-      (report$condition == con1) | (report$condition == con2), ]
+    ## 2. Iterate across comparisons
+    method_results <- vector("list", n_comparison)
+    names(method_results) <- paste0(base_condition, "/", cond_rest)
+    for (cond in cond_rest) {
+      comparison <- paste0(base_condition, "/", cond)
 
-
-    # Run paired t-test
-    df_paired <- report_twoconds %>%
-      reshape::cast(
-        experiment + protein_id + precursor_id + replicate + fragment_id ~
-          condition,
-        value = "log10_fragment_peak_area",
-        fun.aggregate = mean,
-        na.rm = TRUE
+      report_twoconds <- report %>% filter(
+        report$condition == base_condition | report$condition == cond
       )
 
-    colnames(df_paired)[c(6, 7)] <- c(
-      "Log10NormalizedPeakArea.x", "Log10NormalizedPeakArea.y"
-    )
-
-    result_paired0 <- df_paired %>%
-      dplyr::group_by(
-        .data$experiment,
-        .data$protein_id,
-        .data$precursor_id
-      ) %>%
-      dplyr::group_modify(~compute_paired_on_group(.x)) %>%
-      as.data.frame()
-
-
-    # Run independent t-test
-    df_indep <- report_twoconds %>%
-      dplyr::group_by(
-        .data$experiment,
-        .data$protein_id,
-        .data$precursor_id,
-        .data$replicate,
-        .data$condition
-      ) %>%
-      dplyr::summarise(
-        log10_peptide_quantity = log10(
-          sum(
-            .data$fragment_peak_area,
-            na.rm = TRUE
-          )
+      result0 <- NULL
+      if (method_name != "shrinkage") {
+        result0 <- method_func(report_twoconds)
+      } else {
+        result0 <- method_func(
+          report_twoconds, boot_denom_eps = boot_denom_eps
         )
-      ) %>%
-      reshape::cast(
-        experiment + protein_id + precursor_id + replicate ~ condition,
-        value = "log10_peptide_quantity",
-        fun.aggregate = mean,
-        na.rm = TRUE
-      )
+      }
 
-    colnames(df_indep)[c(5, 6)] <- c(
-      "Log10Quantity.x", "Log10Quantity.y"
-    )
-
-    result_indep0 <- df_indep %>%
-      dplyr::group_by(
-        .data$experiment,
-        .data$protein_id,
-        .data$precursor_id
-      ) %>%
-      dplyr::group_modify(~compute_indep_on_group(.x)) %>%
-      as.data.frame()
-
-
-    # Run shrinkage t-test
-    result_shrink0 <- report_twoconds %>%
-      dplyr::group_by(
-        .data$experiment,
-        .data$protein_id,
-        .data$precursor_id
-      ) %>%
-      dplyr::group_modify(
-        ~compute_shrink_on_group(
-          .x,
-          value_column = "log10_fragment_peak_area",
-          cov_unequal_replicates_column = "cov_unequal_replicates",
-          boot_denom_eps = boot_denom_eps
-        )
-      ) %>%
-      as.data.frame()
-
-    # Collect analysis results
-    result_paired[[id]] <- result_paired0
-    result_indep[[id]] <- result_indep0
-    result_shrink[[id]] <- result_shrink0
+      method_results[[comparison]] <- result0
+    }
+    test_results[[method_name]] <- method_results
   }
-
-  return(list(paired = result_paired,
-              independent = result_indep,
-              shrinkage = result_shrink))
+  return(test_results)
 }
 
 
 #' Compute contingency tables
 #'
 #' Compute contingency tables based on the results of running t-test methods.
-#' @param results_run_ttests results of run_ttest function, which is a list of
-#'   analysis results of each method.
-#' @param alpha significance level
-#' @return list of contingency tables for every comparisons. Each element of
+#' @param test_results Results of run_ttest function, which is a named
+#'   list of analysis results of each method.
+#' @param alpha Significance level
+#' @param q_value_column Name of the column having significance levels: A
+#'   smaller value implies more significance.
+#' @return List of contingency tables for every comparisons. Each element of
 #'   the list is a table, whose columns are the t-test methods and the rows are
-#'   TRUE/FALSE representing whether H0 is rejected or not.
+#'   FALSE/TRUE, where FALSE represents that null hypothesis is not rejected,
+#'.  and TRUE represents rejected.
 #' @export
-compute_contingency_tables <- function(results_run_ttests, alpha = 0.05) {
-  id_methods <- names(results_run_ttests)
-  id_comparisons <- names(results_run_ttests[[1]])
+compute_contingency_tables <- function(
+  test_results, alpha = 0.05, q_value_column = "p.value"
+) {
+  method_names <- names(test_results)
+  comparisons <- names(test_results[[1]])
 
-  tab_result <- vector("list", length(id_comparisons))
-  names(tab_result) <- id_comparisons
+  contingency_tables <- vector("list", length(comparisons))
+  names(contingency_tables) <- comparisons
 
-  for (id in id_comparisons) {
+  for (comparison in comparisons) {
     tab_result_comparison <- data.frame(Rejected = c(FALSE, TRUE))
 
-    for (method in id_methods) {
-      result_method <- results_run_ttests[[method]]
+    for (method_name in method_names) {
+      result_method <- test_results[[method_name]]
 
       # Compute contingency tables of every methods
       tab_method_comparison <- data.frame(
-        table(
-          result_method[[id]]$p.value < alpha
-        )
+        table(result_method[[comparison]][[q_value_column]] < alpha)
       )
-      names(tab_method_comparison) <- c("Rejected", method)
+      names(tab_method_comparison) <- c("Rejected", method_name)
 
       # Collect contingency tables
-      tab_result_comparison <- tab_result_comparison %>%
-        merge(tab_method_comparison, by = "Rejected", all = TRUE)
+      tab_result_comparison <- merge(
+        tab_result_comparison,
+        tab_method_comparison,
+        by = "Rejected",
+        all = TRUE
+      )
     }
 
     tab_result_comparison[is.na(tab_result_comparison)] <- 0
 
-    tab_result[[id]] <- tab_result_comparison
+    contingency_tables[[comparison]] <- tab_result_comparison
   }
 
-  return(tab_result)
+  return(contingency_tables)
 }
 
 

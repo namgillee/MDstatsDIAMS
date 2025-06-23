@@ -1,9 +1,11 @@
 #' Standard error of estimate for shrinkage-based t-test statistic.
 #'
-#' Standard error constitutes the numerator of the test statistic formula.
-#' The estimate for shrinkage-based t-test is the sum of diff over fragment
-#' ions, where diff for a fragment ion is defined by
-#' \eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}}.
+#' Standard error appears in the the denominator of the test statistic formula.
+#' In the shrinkage-based t-test, the estimate of group mean difference is the
+#' sum of \eqn{d_i} across fragment ions \eqn{i}, where
+#' \eqn{d_i = \bar{x}_{1i} - \bar{x}_{2i}},
+#' with \eqn{\bar{x}_{1i}} and \eqn{\bar{x}_{2i}} representing the mean
+#' quantities for fragment ion \eqn{i} in groups 1 and 2, respectively.
 #' @param dat_con1,dat_con2  Data matrices of normalized fragment ion peak area
 #'   in logarithmic scale, \eqn{x_{1ir}^p, x_{2ir}^p}. Each row is a replicate,
 #'   each column is a fragment ion.
@@ -48,6 +50,11 @@ se_diff_shrink <- function(
   }
 
   # Compute covariance matrix
+  # Warnings are suppressed -- The corpcor::cov.shrink() raises a warning when
+  # it detects "any variable with zero scale" in the input data matrix, i.e.,
+  # when any column is constant. Nevertheless, the shrinkage estimation method
+  # still produces valid covariance estimates with finite values, avoiding NA or
+  # NaN entries.
   suppressWarnings(
     covmat <- corpcor::cov.shrink(
       dat, lambda.var = lambda_var, verbose = verbose
@@ -182,7 +189,7 @@ shrinkage_t_test_statistic <- function(
 #' @export
 shrinkage_t_test <- function(
   dat_con1, dat_con2, cov_unequal_replicates = 0, num_boot = 100,
-  cov_equal = TRUE, boot_denom_eps = 0.5, verbose = FALSE
+  cov_equal = TRUE, boot_denom_eps = 0.3, verbose = FALSE
 ) {
 
   # check number of fragment ions
@@ -244,4 +251,102 @@ shrinkage_t_test <- function(
   result$d <- attr(result$statistic, "d")
 
   return(result)
+}
+
+
+#' Wrapper function for shrinkage t-test
+#'
+#' @param groupdf A subset of precursor report which consists of two conditions.
+#'   It contains columns named "replicate", "fragment_id", "condition", and
+#'   a value column.
+#' @param value_column Column name for log10-transformed fragment ion quantities
+#' @param cov_unequal_replicates_column Column name for covariance of input
+#'   variables whose replicates are not equal. All entries in the column is
+#'   considered equal. If NULL, the covariance is set to zero.
+#' @param boot_denom_eps A parameter for shrinkage t-test
+#' @importFrom dplyr %>%
+#' @return A data frame of the shrinkage t-test results
+compute_shrink_on_group <- function(
+  groupdf,
+  value_column = "log10_fragment_peak_area",
+  cov_unequal_replicates_column = NULL,
+  boot_denom_eps = 0.3
+) {
+  if (length(unique(groupdf$condition)) < 2) {
+    return(as.data.frame(list()))
+  }
+
+  cov_unequal_replicates <- 0
+  if (!is.null(cov_unequal_replicates_column) &&
+      !is.null(groupdf[[cov_unequal_replicates_column]])) {
+    cov_unequal_replicates <- groupdf[[cov_unequal_replicates_column]][
+      !is.na(groupdf[[cov_unequal_replicates_column]])
+    ][1]
+  }
+
+  df_shrink <- groupdf %>%
+    reshape::cast(
+      replicate ~ fragment_id ~ condition,
+      value = value_column,
+      fun.aggregate = mean
+    )
+
+  dat_con1 <- as.matrix(df_shrink[, , 1])
+  dat_con2 <- as.matrix(df_shrink[, , 2])
+  dim(dat_con1) <- dim(dat_con2) <- dim(df_shrink)[1 : 2]
+
+  as.data.frame(shrinkage_t_test(
+    dat_con1, dat_con2, cov_unequal_replicates = cov_unequal_replicates,
+    num_boot = 100, cov_equal = TRUE, boot_denom_eps = boot_denom_eps,
+    verbose = FALSE
+  ))
+}
+
+
+#' Run shrinkage t-test comparing two conditions on a standard report
+#'
+#' @param report Fragment ion report with the columns experiment, condition,
+#'   replicate, protein_id, precursor_id, fragment_id, and fragment_peak_area.
+#'   The condition column is supposed to consist of two conditions.
+#' @param cov_unequal_replicates_column Column name for covariance of input
+#'   variables whose replicates are not equal. If NULL, the covariance is set to
+#'   zero.
+#' @param boot_denom_eps A parameter for shrinkage t-test
+#' @return A data frame of the test results. Columns are shrinkage_t_test
+#'   results, and rows are precursors.
+#' @export
+compute_shrink_on_stdreport <- function(
+  report,
+  cov_unequal_replicates_column = "cov_unequal_replicates",
+  boot_denom_eps = 0.3
+) {
+  report[["log10_fragment_peak_area"]] <- log10(report[["fragment_peak_area"]])
+  if (!is.null(cov_unequal_replicates_column) &&
+      is.null(report[[cov_unequal_replicates_column]])) {
+    warning(
+      paste(
+        "The",
+        cov_unequal_replicates_column,
+        "column does not exist in the report."
+      )
+    )
+  }
+
+  result_shrink0 <- report %>%
+    dplyr::group_by(
+      .data$experiment,
+      .data$protein_id,
+      .data$precursor_id
+    ) %>%
+    dplyr::group_modify(
+      ~compute_shrink_on_group(
+        .x,
+        value_column = "log10_fragment_peak_area",
+        cov_unequal_replicates_column = cov_unequal_replicates_column,
+        boot_denom_eps = boot_denom_eps
+      )
+    ) %>%
+    as.data.frame()
+
+  return(result_shrink0)
 }

@@ -4,18 +4,26 @@
 \alias{compute_contingency_tables}
 \title{Compute contingency tables}
 \usage{
-compute_contingency_tables(results_run_ttests, alpha = 0.05)
+compute_contingency_tables(
+  test_results,
+  alpha = 0.05,
+  q_value_column = "p.value"
+)
 }
 \arguments{
-\item{results_run_ttests}{results of run_ttest function, which is a list of
-analysis results of each method.}
+\item{test_results}{Results of run_ttest function, which is a named
+list of analysis results of each method.}
 
-\item{alpha}{significance level}
+\item{alpha}{Significance level}
+
+\item{q_value_column}{Name of the column having significance levels: A
+smaller value implies more significance.}
 }
 \value{
-list of contingency tables for every comparisons. Each element of
+List of contingency tables for every comparisons. Each element of
 the list is a table, whose columns are the t-test methods and the rows are
-TRUE/FALSE representing whether H0 is rejected or not.
+FALSE/TRUE, where FALSE represents that null hypothesis is not rejected,
+.  and TRUE represents rejected.
 }
 \description{
 Compute contingency tables based on the results of running t-test methods.

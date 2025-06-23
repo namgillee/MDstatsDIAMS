@@ -11,7 +11,7 @@ shrinkage_t_test(
   cov_unequal_replicates = 0,
   num_boot = 100,
   cov_equal = TRUE,
-  boot_denom_eps = 0.5,
+  boot_denom_eps = 0.3,
   verbose = FALSE
 )
 }

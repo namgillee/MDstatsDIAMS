@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{compute_cov_unequal_replicates}
 \alias{compute_cov_unequal_replicates}
-\title{Compute and attach cov_unequal_replicates}
+\title{Compute cov_unequal_replicates}
 \usage{
 compute_cov_unequal_replicates(report_df)
 }
@@ -14,7 +14,7 @@ fragment_peak_area column}
 the report data frame with a new column "cov_unequal_replicates"
 }
 \description{
-Compute cov_unequal_replicates by each protein, and attach it into a new
+Compute cov_unequal_replicates by each protein, and append it into a new
 column. The fragment_ion_peak area is first summarized to
 log10_peptide_quantity in precursor level. It is then used for estimating
 a mixture of normal and expbeta distributions by each protein.
