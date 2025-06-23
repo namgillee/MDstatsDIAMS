@@ -30,7 +30,7 @@ n_protein <- 100
 # remove_intermediate_reports:
 #   If TRUE, remove report from environment if not used in further steps. 
 #   Default to FALSE.
-remove_intermediate_reports <- TRUE
+remove_intermediate_reports <- FALSE
 ```
 
 2. Load packages
@@ -89,7 +89,7 @@ if (
 ) {
   df_subset = df_filtered
 } else {
-  set.seed(111)
+  set.seed(1111)
   protein_subset = sample(unique(df_filtered$protein_id), n_protein)
   df_subset = df_filtered %>% filter(protein_id %in% protein_subset)
 }
@@ -300,5 +300,6 @@ for (method in names(protein_df_agg)) {
 }
 
 print(paste(c("Conditions:", subconditions), collapse = " "))
-print(paste(c("AUCs:", aucs), collapse = " "))
+print("AUCs:")
+print(aucs)
 ```

@@ -124,7 +124,7 @@ compute_sensitivity_result <- function(
       # Append is_target column
       target_table <- comparison_table %>%
         dplyr::group_by_at(group_column) %>%
-        dplyr::summarize_at(is_target_column, first)
+        dplyr::summarize_at(is_target_column, dplyr::first)
 
       grouped_table <- grouped_table %>%
         dplyr::left_join(target_table, by = group_column)

@@ -2,7 +2,7 @@
 % Please edit documentation in R/convert.R
 \name{convert_sn_to_standard}
 \alias{convert_sn_to_standard}
-\title{Convert a spectronaut fragment ion report to a standard report}
+\title{Convert spectronaut fragment ion report into standard report}
 \usage{
 convert_sn_to_standard(sn_report, filter_identified = TRUE)
 }
@@ -20,5 +20,5 @@ A standard report with columns condition, replicate, experiment,
 protein_id, precursor_id, precursor_qvalue, fragment_id, fragment_peak_area
 }
 \description{
-Convert a spectronaut fragment ion report to a standard report
+Convert spectronaut fragment ion report into standard report
 }
