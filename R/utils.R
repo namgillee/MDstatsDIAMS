@@ -22,8 +22,6 @@
   init_sigma <- min(sigma_left, sigma_right)
 
   cov_unequal_replicates <- max(0, var_x - init_sigma^2)
-
-  return(cov_unequal_replicates)
 }
 
 

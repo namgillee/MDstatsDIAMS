@@ -45,18 +45,19 @@ local_fdr <- function(
 #'   only when `known_target_df` is not NULL.
 #' @export
 compute_lfdr_result <- function(
-  ttest_result, known_target_df = NULL, is_target_column = 'is_target'
+  ttest_result, known_target_df = NULL, is_target_column = "is_target"
 ) {
   for (method_name in names(ttest_result)) {
     for (comparison in names(ttest_result[[method_name]])) {
-      p.value <- ttest_result[[method_name]][[comparison]]$p.value
-      lfdr <- local_fdr(p.value)
+      p_value <- ttest_result[[method_name]][[comparison]]$p.value
+      lfdr <- local_fdr(p_value)
       ttest_result[[method_name]][[comparison]]$lfdr <- lfdr
 
       if (!is.null(known_target_df)) {
         protein_id <- ttest_result[[method_name]][[comparison]]$protein_id
         is_target <- (protein_id %in% known_target_df$UniprotID)
-        ttest_result[[method_name]][[comparison]][[is_target_column]] <- is_target
+        ttest_result[[method_name]][[comparison]][[is_target_column]] <-
+          is_target
       }
     }
   }
@@ -173,7 +174,6 @@ compute_sensitivity_result <- function(
         q_values = grouped_table[[q_value_column]],
         random_seed = random_seed
       )
-      return(sensitivity_table)
     })
   })
   return(sensitivity_result)

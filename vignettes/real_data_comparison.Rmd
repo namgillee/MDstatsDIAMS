@@ -89,7 +89,7 @@ if (
 ) {
   df_subset = df_filtered
 } else {
-  set.seed(1111)
+  set.seed(111)
   protein_subset = sample(unique(df_filtered$protein_id), n_protein)
   df_subset = df_filtered %>% filter(protein_id %in% protein_subset)
 }
@@ -141,7 +141,7 @@ print(paste("cov_unequal_replicates value:",
             df_two_conds$cov_unequal_replicates[1]))
 
 # Run methods
-# Resu is a list of method results; each method result is a list of
+# ttest_result is a list of method results; each method result is a list of
 # comparison(== two conditions) results.
 ttest_result <- run_ttests(
   df_two_conds,

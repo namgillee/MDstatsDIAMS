@@ -1,5 +1,5 @@
 ---
-title: "Tutorial: MDstatsDIAMS for Downstream Analysis"
+title: "MSstatsDIAMS for Precursor-Level Differential Analysis of DIA Data"
 author: 
   - Namgil Lee^[Kangwon National University, and Bionsight Inc., namgil.lee@kangwon.ac.kr], Hojin Yoo^[Bionsight Inc.], Juhyoung Kim^[Kangwon National University], Heejung Yang^[Kangwon National University, and Bionsight Inc., heejyang@kangwon.ac.kr]
 date: "June 23, 2025"
@@ -23,7 +23,7 @@ examples.
 
 ### Importing Spectronaut
 
-A Spectronaut report can be converted into standard format conveniently.
+A **Spectronaut** report can be converted into standard format conveniently.
 
 ```{r sn_to_standard, eval=FALSE}
 sn_report <- arrow::read_parquet(
@@ -110,10 +110,10 @@ standard_report <- convert_ms_to_standard(sk_in_msstats)
 
 ## Running Statistical Tests of Mean Differences Between Two Groups
 
-**MDstatsDIAMS** implemented fundamental t-test methods (paired t-test, independent
-samples t-test, and shrinkage t-test), as well as interface functions for using
-external differential analysis methods (**MSstats**, MSqRob2, ROTS) for testing
-mean differences between two groups.
+**MDstatsDIAMS** implemented differential analysis methods on precursor level,
+including fundamental t-test methods (`paired`: paired t-test, `independent`:
+independent samples t-test, `shrinkage`: shrinkage t-test), as well as interface
+for using external methods (`msstatslip`: **MSstatsLiP**, `rots`: **ROTS**).
 
 The `run_ttests()` will run statistical methods specified by `method_names =`
 for comparing a base condition (e.g., "DMSO") with all the other conditions. If
@@ -128,9 +128,9 @@ print(names(test_results))
 print(names(test_results[[1]]))
 ```
 
-The test results obtained by `run_ttests()` have **p.value** column in each
+The test results obtained by `run_ttests()` have `p.value` column in each
 table for every comparisons. The **MDstatsDIAMS** can compute local false
-discovery rate (lfdr) score and append it into the table as **lfdr** column.
+discovery rate (lfdr) score and append it into the table as `lfdr` column.
 
 ```{r compute_lfdr, eval=FALSE}
 lfdr_results <- compute_lfdr_result(test_results)

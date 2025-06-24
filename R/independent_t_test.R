@@ -111,6 +111,4 @@ compute_indep_on_stdreport <- function(report) {
     ) %>%
     dplyr::group_modify(~compute_indep_on_group(.x)) %>%
     as.data.frame()
-
-  return(result_indep0)
 }

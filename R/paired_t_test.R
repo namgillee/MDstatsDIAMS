@@ -97,6 +97,4 @@ compute_paired_on_stdreport <- function(report) {
     ) %>%
     dplyr::group_modify(~compute_paired_on_group(.x)) %>%
     as.data.frame()
-
-  return(result_paired0)
 }

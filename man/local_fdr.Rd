@@ -8,6 +8,11 @@ local_fdr(pvalues, known_target_df, eps = 5e-16)
 }
 \arguments{
 \item{pvalues}{A vector of p-values}
+
+\item{known_target_df}{A data frame with Uniprot ID's at the first column
+named 'UniprotID'. All the proteins are regarded as on-targets.}
+
+\item{eps}{A small floating number that sets a lower bound on the p-values.}
 }
 \value{
 A vector of local fdr values, of the same length as pvalues

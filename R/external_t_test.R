@@ -3,17 +3,17 @@
 #' @param report Fragment ion report with the columns experiment, condition,
 #'   replicate, protein_id, precursor_id, fragment_id, and fragment_peak_area.
 #'   The condition column is supposed to consist of two conditions.
-#' @return A data frame of the test results. Columns are 
+#' @return A data frame of the test results. Columns are
 #'   experiment, protein_id, precursor_id, statistic, df, p.value, estimate.
 #'   And rows are precursors.
 #' @importFrom dplyr %>%
 #' @export
-compute_msstatslip_on_stdreport <- function(report) {
+compute_mslip_on_stdreport <- function(report) {
   # Convert column names
-  msstats_report <- convert_standard_to_ms(report)
-  
+  msstats_report <- convert_standard_to_mslip(report)
+
   # Run MSstats processData
-  summarized < MSstats::dataProcess(
+  summarized <- MSstats::dataProcess(
     msstats_report,
     logTrans = 2,
     normalization = "equalizeMedians",
@@ -26,7 +26,7 @@ compute_msstatslip_on_stdreport <- function(report) {
     use_log_file = FALSE,
     verbose = FALSE
   )
-  
+
   # Run MSstats analysis
   model <- MSstats::groupComparison(
     "pairwise",
@@ -34,8 +34,8 @@ compute_msstatslip_on_stdreport <- function(report) {
     use_log_file = FALSE,
     verbose = FALSE
   )
-  
-  # Convert column 
+
+  # Convert column
 }
 
 
@@ -44,7 +44,7 @@ compute_msstatslip_on_stdreport <- function(report) {
 #' @param report fragment ion report with the columns experiment, condition,
 #'   replicate, protein_id, precursor_id, fragment_id, and fragment_peak_area.
 #'   The condition column is supposed to consist of two conditions.
-#' @return a data frame of the test results. Columns are 
+#' @return a data frame of the test results. Columns are
 #'   experiment, protein_id, precursor_id, statistic, df, p.value, estimate.
 #'   And rows are precursors.
 #' @export
@@ -57,7 +57,7 @@ compute_msqrob2_on_stdreport <- function(report) {
 #' @param report fragment ion report with the columns experiment, condition,
 #'   replicate, protein_id, precursor_id, fragment_id, and fragment_peak_area.
 #'   The condition column is supposed to consist of two conditions.
-#' @return a data frame of the test results. Columns are 
+#' @return a data frame of the test results. Columns are
 #'   experiment, protein_id, precursor_id, statistic, df, p.value, estimate.
 #'   And rows are precursors.
 #' @export

@@ -105,22 +105,20 @@ convert_ms_to_standard <- function(ms_report) {
   ms_report <- ms_report %>%
     dplyr::group_by(condition, protein_id, precursor_id, fragment_id) %>%
     dplyr::mutate(replicate = as.numeric(as.factor(.data$replicate)))
-
-  return(ms_report)
 }
 
 
-#' Convert standard report into MSstats format
+#' Convert standard report into MSstatsLiP format
 #'
 #' No preprocessing is carried out, but column names are changed.
 #' @param report A standard report. Required columns are condition, replicate,
 #'   experiment, protein_id, precursor_id, fragment_id, fragment_peak_area.
 #' @importFrom dplyr %>%
-#' @return A standard report with columns ProteinName, PeptideSequence,
+#' @return An MSstatsLiP format with columns ProteinName, PeptideSequence,
 #'   PrecursorCharge, FragmentIon, ProductCharge, Condition, BioReplicate, Run,
-#'   Intensity
+#'   Intensity, FULL_PEPTIDE
 #' @export
-convert_standard_to_ms <- function(report) {
+convert_standard_to_mslip <- function(report) {
 
   # BioReplicate as a unique number for each condition x replicate
   n_rep_per_cond <- max(as.numeric(report$replicate), na.rm = TRUE)
@@ -150,7 +148,9 @@ convert_standard_to_ms <- function(report) {
       Run = .data$experiment,
       Intensity = .data$fragment_peak_area
     ) %>%
-    dplyr::mutate(FULL_PEPTIDE = paste()) %>%
+    dplyr::mutate(
+      FULL_PEPTIDE = paste(.data$ProteinName, .data$PeptideSequence, sep = "_")
+    ) %>%
     dplyr::select(-c(replicate, precursor_id, fragment_id))
 
   return(report)
