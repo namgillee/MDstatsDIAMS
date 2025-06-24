@@ -152,8 +152,6 @@ convert_standard_to_mslip <- function(report) {
       FULL_PEPTIDE = paste(.data$ProteinName, .data$PeptideSequence, sep = "_")
     ) %>%
     dplyr::select(-c(replicate, precursor_id, fragment_id))
-
-  return(report)
 }
 
 
