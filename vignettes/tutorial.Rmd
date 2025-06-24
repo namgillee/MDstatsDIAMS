@@ -1,0 +1,166 @@
+---
+title: "Tutorial: MDstatsDIAMS for Downstream Analysis"
+author: 
+  - Namgil Lee^[Kangwon National University, and Bionsight Inc., namgil.lee@kangwon.ac.kr], Hojin Yoo^[Bionsight Inc.], Juhyoung Kim^[Kangwon National University], Heejung Yang^[Kangwon National University, and Bionsight Inc., heejyang@kangwon.ac.kr]
+date: "June 23, 2025"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: show
+---
+
+This is a tutorial for performing downstream analysis with **MDstatsDIAMS** using
+quantitative DIA reports obtained from various software platforms.
+
+## Importing DIA Reports
+
+To import various report formats, **MDstatsDIAMS** supports **MSstats** report format.
+Once a DIA report has been imported into **MSstats** format by using MSstatsConvert,
+it can be converted into **MDstatsDIAMS** standard report format. Here are some
+examples.
+
+### Importing Spectronaut
+
+A Spectronaut report can be converted into standard format conveniently.
+
+```{r sn_to_standard, eval=FALSE}
+sn_report <- arrow::read_parquet(
+  "data/lip_quant_staurosporine_hela_sn_report.parquet"
+)
+
+standard_report <- convert_sn_to_standard(sn_report) 
+```
+
+
+### Importing MaxQuant
+
+**MaxQuant** report consists `evidence.txt` and `proteinGroups.txt` files.
+
+```{r mq_paths, eval=FALSE}
+mq_root <- "data/lip_quant_staurosporine_hela_mq_report_4conds/"
+
+mq_evidence_path <- paste0(mq_root, "evidence.txt")
+mq_proteingroups_path <- paste0(mq_root, "proteinGroups.txt")
+```
+
+It is required to generate `annotation.txt' file in prior for **MSstats**.
+
+```{r create_mq_annotation, eval=FALSE}
+# Set path to annotation file
+annotation_path <- paste0(mq_root, "temp_annotation.txt")
+
+# Import MaxQuant files
+mq_ev <- read.delim(mq_evidence_path)
+mq_pg <- read.delim(mq_proteingroups_path)
+
+# Create annotation file
+annoation_resu_path <- create_mq_annotation_file(
+  mq_evidence = mq_ev,
+  annotation_path = annotation_path,
+  n_replicates_per_condition = 4
+)
+
+if (annotation_resu_path == "") {
+  print("No annotation file was created.")
+  mq_an <- NULL
+} else {
+  mq_an <- read.delim(annoation_resu_path)
+}
+```
+
+**MSstats** converts a **MaxQuant** report into **MSstats** format.
+
+```{r mq_to_msstats, eval=FALSE}
+# Convert to MSstats
+mq_in_msstats <- MSstatsConvert::MaxQtoMSstatsFormat(
+  evidence = mq_ev, annotation = mq_an, proteinGroups = mq_pg,
+  use_log_file = FALSE, verbose = FALSE
+)
+```
+
+The **MDstatsDIAMS** converts **MSstats** format into standard format.
+
+```{r mq_msstats_to_standard, eval=FALSE}
+standard_report <- convert_ms_to_standard(mq_in_msstats)
+```
+
+
+### Importing Skyline
+
+A **Skyline** report can be converted into **MSstats** format.
+
+```{r skyline_to_msstats, eval=FALSE}
+sk_report <- arrow::read_parquet(
+  "data/lip_quant_staurosporine_hela_sk_transition_4conds.parquet"
+)
+
+sk_in_msstats <- MSstatsConvert::SkylinetoMSstatsFormat(
+  sk_report, use_log_file = FALSE, verbose = FALSE
+)
+```
+
+The **MDstatsDIAMS** converts **MSstats** format into standard format.
+
+```{r sk_msstats_to_standard, eval=FALSE}
+standard_report <- convert_ms_to_standard(sk_in_msstats)
+```
+
+
+## Running Statistical Tests of Mean Differences Between Two Groups
+
+**MDstatsDIAMS** implemented fundamental t-test methods (paired t-test, independent
+samples t-test, and shrinkage t-test), as well as interface functions for using
+external differential analysis methods (**MSstats**, MSqRob2, ROTS) for testing
+mean differences between two groups.
+
+The `run_ttests()` will run statistical methods specified by `method_names =`
+for comparing a base condition (e.g., "DMSO") with all the other conditions. If
+`method_names = NULL` (default), all the available methods will be run.
+
+```{r run_ttests, eval=FALSE}
+test_results <- run_ttest(
+  report = standard_report, method_names = NULL, 
+)
+
+print(names(test_results))
+print(names(test_results[[1]]))
+```
+
+The test results obtained by `run_ttests()` have **p.value** column in each
+table for every comparisons. The **MDstatsDIAMS** can compute local false
+discovery rate (lfdr) score and append it into the table as **lfdr** column.
+
+```{r compute_lfdr, eval=FALSE}
+lfdr_results <- compute_lfdr_result(test_results)
+```
+
+
+## Making Summary Tables and Plots
+
+The **MDstatsDIAMS** can compute the numbers of precursors
+that were found significant between two conditions by the table row
+`Rejected = TRUE`. The `p.value` or an alternative significance score such
+as `lfdr` can be supplied for determining 
+
+```{r print_contingency, eval=FALSE}
+tables <- compute_contingency_table(
+  lfdr_results, alpha = 0.05, q_value_column = 'lfdr'
+)
+
+print(tables)
+```
+
+The **MDstatsMDIAMS** can draw line plots for the proportion of rejected
+precursors across comparisons for every statistical methods.
+
+```{r plot_line, eval=FALSE}
+line_plot_contingency_tables(x = c(4, 5, 8), tables = tables, rejected = TRUE)
+```
+
+The **MDstatsMDIAMS** can draw bar plots, alternatively.
+
+```{r plot_bar, eval=FALSE}
+bar_plot_contingency_tables(tables = tables, rejected = TRUE)
+```

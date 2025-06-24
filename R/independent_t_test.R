@@ -29,7 +29,7 @@ independent_t_test <- function(
   }
 
   # perform independent samples t-test
-  ttest_out <- t.test(
+  ttest_out <- stats::t.test(
     quantity1[!is_na_x], quantity2[!is_na_y], var.equal = var_equal,
     paired = FALSE, conf.level = conf_level
   )

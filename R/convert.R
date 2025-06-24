@@ -108,3 +108,143 @@ convert_ms_to_standard <- function(ms_report) {
 
   return(ms_report)
 }
+
+
+#' Convert standard report into MSstats format
+#'
+#' No preprocessing is carried out, but column names are changed.
+#' @param report A standard report. Required columns are condition, replicate,
+#'   experiment, protein_id, precursor_id, fragment_id, fragment_peak_area.
+#' @importFrom dplyr %>%
+#' @return A standard report with columns ProteinName, PeptideSequence,
+#'   PrecursorCharge, FragmentIon, ProductCharge, Condition, BioReplicate, Run,
+#'   Intensity
+#' @export
+convert_standard_to_ms <- function(report) {
+
+  # BioReplicate as a unique number for each condition x replicate
+  n_rep_per_cond <- max(as.numeric(report$replicate), na.rm = TRUE)
+  report <- report %>% dplyr::mutate(
+    BioReplicate = (
+      (as.numeric(as.factor(.data$condition)) - 1) * n_rep_per_cond +
+      as.numeric(.data$replicate)
+    ),
+    Fraction = 1,
+    IsotopeLabelType = "L"
+  )
+
+  # precursor, fragment ion
+  split_precursor_id <- strsplit(report$precursor_id, "[.]")
+  report[["PeptideSequence"]] <- sapply(split_precursor_id, function(s) s[1])
+  report[["PrecursorCharge"]] <- sapply(split_precursor_id, function(s) s[2])
+
+  split_fragment_id <- strsplit(report$fragment_id, "[.]")
+  report[["FragmentIon"]] <- sapply(split_fragment_id, function(s) s[1])
+  report[["ProductCharge"]] <- sapply(split_fragment_id, function(s) s[2])
+
+  # condition, experiment
+  report <- report %>%
+    dplyr::rename(
+      ProteinName = .data$protein_id,
+      Condition = .data$condition,
+      Run = .data$experiment,
+      Intensity = .data$fragment_peak_area
+    ) %>%
+    dplyr::mutate(FULL_PEPTIDE = paste()) %>%
+    dplyr::select(-c(replicate, precursor_id, fragment_id))
+
+  return(report)
+}
+
+
+#' Create MaxQuant annotation file for MSstats
+#'
+#' Create an annotation file in tsv format. Condition column is inferred from
+#' the Experiment column of MaxQuant evidence data.
+#' @param mq_evidence A data frame for a MaxQuant evidence.txt data
+#' @param annotation_path Path to the annotation txt file to write. If a file
+#'   exists at the designated path, user will be asked to make sure to write
+#'   on that path.
+#' @param n_replicates_per_condition Number of replicates per condition.
+#'   Defaults to NULL. If NULL, Condition is inferred from Experiment.
+#' @importFrom dplyr %>%
+#' @return Path to the created annotation.txt file. Empty string "" if failed.
+create_mq_annotation_file <- function(
+  mq_evidence,
+  annotation_path = "data/sample_annotation.txt",
+  n_replicates_per_condition = NULL
+) {
+
+  # Confirm overwriting annotation file if it already exists
+  if (file.exists(annotation_path)) {
+    ans <- readline(
+      paste0(annotation_path, " already exists. Overwrite? (y/[n])")
+    )
+
+    if (ans == "y") {
+      print(paste0("Overwriting ", annotation_path, "."))
+    } else {
+      print(paste0("Not overwriting ", annotation_path, ". Stopping."))
+      return("")
+    }
+  }
+
+  # Create annotation file
+  # Assume each sample is a biological replicate
+  raw_to_exp_match <- mq_evidence %>%
+    dplyr::select(Raw.file, Experiment) %>%
+    dplyr::distinct(.data$Raw.file, .keep_all = TRUE)
+
+  ## Get raw_files
+  raw_files <- raw_to_exp_match[["Raw.file"]]
+  n_samples <- length(raw_files)
+
+  if (!is.null(n_replicates_per_condition)) {
+    n_conditions <- n_samples / n_replicates_per_condition
+
+    if (n_conditions != floor(n_conditions)) {
+      # Reset incorrect parameter to NULL
+      n_replicates_per_condition <- NULL
+    } else {
+      # Infer Conditions
+      # Number of unique Experiment equals to the expected number of conditions
+      len_exp_char <- nchar(raw_to_exp_match[["Experiment"]][1])
+
+      for (len_con_char in len_exp_char:1) {
+        conditions <- substr(raw_to_exp_match[["Experiment"]], 1, len_con_char)
+        if (length(unique(conditions) == n_conditions)) {
+          break
+        }
+      }
+
+      if (length(unique(conditions) != n_conditions)) {
+        # Reset incorrect parameter
+        n_replicates_per_condition <- NULL
+      }
+    }
+  }
+
+  if (is.null(n_replicates_per_condition)) {
+    # Infer Conditions
+    # Assume the first n letters and 1 number from Experiment denotes Condition
+    # For example, "CON1R3" corresponds to "CON1"
+    tokens <- strsplit(raw_to_exp_match[["Experiment"]][1], "[0-9]")[[1]]
+    conditions <- substr(
+      raw_to_exp_match[["Experiment"]], 1, nchar(tokens[1]) + 1
+    )
+  }
+
+  annotation_tab <- data.frame(
+    Raw.file = raw_files,
+    Condition = conditions,
+    BioReplicate = seq(from = 1, to = n_samples),
+    IsotopeLabelType = rep("L", n_samples)
+  )
+
+  utils::write.table(
+    annotation_tab,
+    file = annotation_path,
+    row.names = FALSE,
+    sep = "\t"
+  )
+}

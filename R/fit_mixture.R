@@ -32,7 +32,7 @@ fit_mixture_normal_expbeta <- function(
 
     # Evaluate density functions
     weighted_density_values <- cbind(
-      dnorm(x, fitted_params[1], fitted_params[2]),
+      stats::dnorm(x, fitted_params[1], fitted_params[2]),
       dexpbeta10(x - xlim_max, fitted_params[3], fitted_params[4])
     ) %*% diag(compo_weights)
 

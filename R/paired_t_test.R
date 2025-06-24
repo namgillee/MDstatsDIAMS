@@ -30,7 +30,7 @@ paired_t_test <- function(
   }
 
   # perform paired t-test
-  ttest_out <- t.test(
+  ttest_out <- stats::t.test(
     quantity1[!is_na], quantity2[!is_na], paired = TRUE, conf.level = conf_level
   )
   result <- list(

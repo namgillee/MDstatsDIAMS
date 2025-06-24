@@ -27,7 +27,7 @@ Description: There is a greater need for statistically methodologies to
     experiments produce a very low number of replicates (e.g., 3 or 4). In
     addition, we propose a bootstrap approach for accurate hyperparameter
     estimation.
-License: Apache License (>= 2)
+License: LICENSE + Apache License (>= 2)
 Depends:
     R (>= 4.3.0)
 Imports:
@@ -45,6 +45,9 @@ Imports:
     stats (>= 4.3.0)
 Suggests: 
     lintr
+Remotes:
+    bioc::release/MSstatsConvert,
+    bioc::release/MSstatsLiP
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2

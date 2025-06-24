@@ -2,4 +2,7 @@
 ^\.Rproj\.user$
 ^LICENSE\.md$
 
-notebooks*
+data*
+backups*
+vignettes/*.html
+vignettes/*.pdf

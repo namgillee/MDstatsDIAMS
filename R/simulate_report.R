@@ -20,7 +20,7 @@ default_params <- list(
   prec_mean_std = 1,
 
   # Sampling of data acquisition rate from Beta distribution
-  acquisition_beta_fnt = rbeta,
+  acquisition_beta_fnt = stats::rbeta,
   acquisition_beta_shape1 = 2,
   acquisition_beta_shape2 = 10,
 
@@ -98,9 +98,9 @@ simulate_fragment_ion_report <- function(params, seed = 100) {
   precursor_id <- params[["precursor_id"]]
 
   ### mu values for each experiment
-  mu_values_exp <- rnorm(n_experiment,
-                         mean = params[["prec_mean_mean"]],
-                         sd = params[["prec_mean_std"]])
+  mu_values_exp <- stats::rnorm(n_experiment,
+                                mean = params[["prec_mean_mean"]],
+                                sd = params[["prec_mean_std"]])
   ### mu values for each experiment * condition
   mu_values_cond <-
     rep(mu_values_exp, each = n_condition) +
@@ -120,7 +120,7 @@ simulate_fragment_ion_report <- function(params, seed = 100) {
   ## 2) Generate estimated precursor quantity
   ### noise for each replicate
   noise_values_rep <-
-    rnorm(
+    stats::rnorm(
       n_experiment * n_condition * n_replicate, mean = 0,
       sd = params[["noise_std"]]
     )

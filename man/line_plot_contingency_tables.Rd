@@ -41,5 +41,5 @@ Line plot for contingency tables
   line_plot_contingency_tables(
     x, tables[-1], xlab = expression(delta),
     ylab = "1 - Type II error rate", cex.lab = 1.5
-  )a
+  )
 }

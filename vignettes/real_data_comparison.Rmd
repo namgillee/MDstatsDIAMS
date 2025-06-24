@@ -155,21 +155,13 @@ ttest_result <- run_ttests(
 3. Append local FDR score and on-target information
 
 ```{r compute_lfdr}
-lfdr_result <- ttest_result
-
-for (method_name in names(lfdr_result)) {
-  for (comparison in names(lfdr_result[[method_name]])) {
-    p.value <- lfdr_result[[method_name]][[comparison]]$p.value
-    protein_id <- lfdr_result[[method_name]][[comparison]]$protein_id
-
-    lfdr <- local_fdr(p.value)
-    is_target <- (protein_id %in% known_target_df$UniprotID)
-
-    lfdr_result[[method_name]][[comparison]]$lfdr <- lfdr
-    lfdr_result[[method_name]][[comparison]]$is_target <- is_target
-  }
-}
+lfdr_result <- compute_lfdr_result(
+  ttest_result,
+  known_target_df = known_target_df,
+  is_target_column = 'is_target'
+)
 ```
+
 
 4. Compute sensitivity and specificity from the local fdr results
 

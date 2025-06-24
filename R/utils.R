@@ -6,7 +6,7 @@
 .comp_cov_uneq_repl <- function(x) {
 
   # compute the sample variance
-  var_x <- var(x)
+  var_x <- stats::var(x)
 
   # estimate a mixture of normal and exp-beta distributions
   fit_kde <- stats::density(x)
@@ -14,10 +14,10 @@
   idx_max_kde <- which.max(fit_kde$y)
   x_mode <- fit_kde$x[idx_max_kde]
 
-  sigma_left <- diff(quantile(x_mode - x[x < x_mode], (c(4, 9)) / 10)) /
-    diff(qnorm(0.5 + (c(4, 9)) / 20))
-  sigma_right <- diff(quantile(x[x > x_mode] - x_mode, (c(4, 9)) / 10)) /
-    diff(qnorm(0.5 + (c(4, 9)) / 20))
+  sigma_left <- diff(stats::quantile(x_mode - x[x < x_mode], (c(4, 9)) / 10)) /
+    diff(stats::qnorm(0.5 + (c(4, 9)) / 20))
+  sigma_right <- diff(stats::quantile(x[x > x_mode] - x_mode, (c(4, 9)) / 10)) /
+    diff(stats::qnorm(0.5 + (c(4, 9)) / 20))
 
   init_sigma <- min(sigma_left, sigma_right)
 
@@ -56,7 +56,7 @@ compute_cov_unequal_replicates <- function(report_df) {
 
   # median-normalize them by each condition
   #   A negative value is not removed but ignored.
-  median_log10_quantity <- median(
+  median_log10_quantity <- stats::median(
     precursor_df$log10_peptide_quantity, na.rm = TRUE
   )
 
@@ -66,7 +66,7 @@ compute_cov_unequal_replicates <- function(report_df) {
     ) %>%
     dplyr::mutate(
       median_log10_quantity_by_condition =
-        median(.data$log10_peptide_quantity, na.rm = TRUE)
+        stats::median(.data$log10_peptide_quantity, na.rm = TRUE)
     ) %>%
     dplyr::mutate(
       log10_peptide_quantity =
@@ -172,7 +172,7 @@ run_ttests <- function(
     for (cond in cond_rest) {
       comparison <- paste0(base_condition, "/", cond)
 
-      report_twoconds <- report %>% filter(
+      report_twoconds <- report %>% dplyr::filter(
         report$condition == base_condition | report$condition == cond
       )
 
@@ -262,7 +262,7 @@ compute_contingency_tables <- function(
 #'   line_plot_contingency_tables(
 #'     x, tables[-1], xlab = expression(delta),
 #'     ylab = "1 - Type II error rate", cex.lab = 1.5
-#'   )a
+#'   )
 #' @export
 line_plot_contingency_tables <- function(
   x, tables, rejected = TRUE, scale_factor = 1, add_legend = FALSE,
@@ -289,13 +289,13 @@ line_plot_contingency_tables <- function(
   seq_hcl_colors <- rep(2 : 4, ceiling(n_methods / 3))
   line_types <- rep(1 : 2, each = ceiling(n_methods / 2))
   pch_types <- c(1, 2, 6, 3, 4, 16, 7 : 10)[1 : n_methods]
-  matplot(x, values, type = "o", lty = line_types,
-          col = seq_hcl_colors, pch = pch_types, ...)
+  graphics::matplot(x, values, type = "o", lty = line_types,
+                    col = seq_hcl_colors, pch = pch_types, ...)
 
   if (add_legend != FALSE) {
-    legend(legend_coord, legend = name_methods, lty = line_types,
-           col = seq_hcl_colors, pch = pch_types, cex = legend_cex,
-           lwd = 2)
+    graphics::legend(legend_coord, legend = name_methods, lty = line_types,
+                     col = seq_hcl_colors, pch = pch_types, cex = legend_cex,
+                     lwd = 2)
   }
 }
 
@@ -341,11 +341,11 @@ bar_plot_contingency_tables <- function(
   values <- values * scale_factor
 
   seq_hcl_colors <- colorspace::sequential_hcl(n_methods, "hawaii")
-  barplot(t(values), beside = TRUE, col = seq_hcl_colors, ...)
+  graphics::barplot(t(values), beside = TRUE, col = seq_hcl_colors, ...)
 
   if (add_legend != FALSE) {
     legend_text <- name_methods
-    legend(
+    graphics::legend(
       "top",
       fill = seq_hcl_colors,
       legend = legend_text,
