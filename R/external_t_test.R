@@ -83,14 +83,14 @@ compute_mslip_on_stdreport <- function(report) {
 #' @export
 compute_rots_on_stdreport <- function(report) {
   condition_levels <- levels(as.factor(report$condition))
+  condition_levels <- condition_levels[condition_levels %in% report$condition]
   n_conditions <- length(condition_levels)
 
-  experiment_levels <- unique(report$experiment)
   test_result <- NULL
 
   # Summarize fragment peak area for log10 precursor quantity
-  if (is.null(report$log10_precursor_quantity)) {
-    if (is.null(report$precursor_quantity)) {
+  if (!("log10_precursor_quantity" %in% names(report))) {
+    if (!("precursor_quantity" %in% names(report))) {
       report <- report %>%
         dplyr::group_by(
           .data$experiment,
@@ -128,7 +128,7 @@ compute_rots_on_stdreport <- function(report) {
       # Convert to ROTS format
       rots_report <- report %>%
         dplyr::filter(
-            (.data$condition == con1 | .data$condition == con2)
+          (.data$condition == con1 | .data$condition == con2)
         ) %>%
         reshape::cast(
           experiment + protein_id + precursor_id ~ condition + replicate,
@@ -137,13 +137,18 @@ compute_rots_on_stdreport <- function(report) {
           na.rm = TRUE
         )
 
-      nchar_con1 <- nchar(con1)
-      sample_id1 <- substr(colnames(rots_report)[-c(1 : 3)], 1, nchar_con1) ==
+      sample_id1 <- substr(colnames(rots_report)[-c(1 : 3)], 1, nchar(con1)) ==
         con1
       contrast <- as.numeric(sample_id1)
 
+      # Filter rots input report
+      rots_filtered <- rots_report[, -c(1 : 3)]
+      id_filtered1 <- rowSums(!is.na(rots_filtered[, contrast == 1])) >= 2
+      id_filtered0 <- rowSums(!is.na(rots_filtered[, contrast == 0])) >= 2
+      id_filtered <- id_filtered1 & id_filtered0
+
       rots_model_list <- ROTS::ROTS(
-        data = rots_report[, -c(1 : 3)],
+        data = rots_report[id_filtered, -c(1 : 3)],
         groups = contrast,
         B = 100,
         K = 500,
@@ -155,9 +160,9 @@ compute_rots_on_stdreport <- function(report) {
       )
       rots_model_df <- rots_model_df %>%
         dplyr::mutate(
-          experiment = rots_report[, 1],
-          protein_id = rots_report[, 2],
-          precursor_id = rots_report[, 3],
+          experiment = rots_report[id_filtered, 1],
+          protein_id = rots_report[id_filtered, 2],
+          precursor_id = rots_report[id_filtered, 3],
           Label = paste0(con1, " vs ", con2)
         ) %>%
         dplyr::rename(

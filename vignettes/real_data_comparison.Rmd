@@ -31,6 +31,10 @@ n_protein <- 100
 #   If TRUE, remove report from environment if not used in further steps. 
 #   Default to FALSE.
 remove_intermediate_reports <- FALSE
+
+# result_save_folder:
+#   Path to the folder to save ttest results
+result_save_folder <- "/Users/namgil/Documents/Projects/MDstatsDIAMS/data/sn_"
 ```
 
 2. Load packages
@@ -48,14 +52,16 @@ Load a Spectronaut report and an on-target protein list from a remote repository
 ```{r read_report}
 df_real <- arrow::read_parquet(
   paste0(
-    "https://zenodo.org/records/15653980/files/",
+    "/Users/namgil/Documents/Projects/MDstatsDIAMS/data/",
+    #"https://zenodo.org/records/15653980/files/",
     "lip_quant_staurosporine_hela_sn_report.parquet"
   )
 )
 
 known_target_df <- read.csv(
   paste0(
-    "https://zenodo.org/records/15653980/files/",
+    "/Users/namgil/Documents/Projects/MDstatsDIAMS/data/",
+    #"https://zenodo.org/records/15653980/files/",
     "known_target_list_staurosporine_davis2011.csv"
   )
 )
@@ -131,24 +137,28 @@ print(paste("Comparing mean differences between two conditions:",
             treat_condition))
 ```
 
-* Run statisical methods.
+* Run statistical methods.
 
 ```{r run_methods}
-# Append a column 'cov_unequal_replicates'
-df_two_conds <- compute_cov_unequal_replicates(df_two_conds)
-
-print(paste("cov_unequal_replicates value:",
-            df_two_conds$cov_unequal_replicates[1]))
-
-# Run methods
-# ttest_result is a list of method results; each method result is a list of
-# comparison(== two conditions) results.
-ttest_result <- run_ttests(
-  df_two_conds,
-  method_names = NULL,
-  boot_denom_eps = 0.3,
-  base_condition = control_condition
+## Compute ttest result comparing two conditions ##
+save_path <- paste0(
+  result_save_folder,
+  "ttest_result_n", n_protein, "_", control_condition, "_", treat_condition,
+  ".RData"
 )
+
+if (file.exists(save_path)) {
+  load(save_path)
+} else {
+  # Run methods
+  ttest_result <- run_ttests(
+    df_two_conds,
+    method_names = NULL,
+    boot_denom_eps = 0.3,
+    base_condition = control_condition
+  )
+  save(ttest_result, file = save_path)
+}
 ```
 
 
@@ -227,19 +237,34 @@ aucs <- c()
 num_cond <- length(subconditions)
 for (i in 1:(num_cond - 1)) {
   ## Compute p-value from consecutive conditions
-  df_two_conds0 <- df_subset %>%
-    filter(condition %in% c(subconditions[i], subconditions[i + 1]))
+  control_condition <- subconditions[i]
+  treat_condition <- subconditions[i + 1]
 
-  ttest_result0 <- run_ttests(
-    df_two_conds0,
-    method_names = NULL,
-    boot_denom_eps = 0.3,
-    base_condition = subconditions[i]
+  df_two_conds <- df_subset %>%
+    filter(condition %in% c(control_condition, treat_condition))
+  
+  ## Compute ttest result comparing two conditions ##
+  save_path <- paste0(
+    result_save_folder,
+    "ttest_result_n", n_protein, "_", control_condition, "_", treat_condition,
+    ".RData"
   )
+  if (file.exists(save_path)) {
+    load(save_path)
+  } else {
+    ttest_result <- run_ttests(
+      df_two_conds,
+      method_names = NULL,
+      boot_denom_eps = 0.3,
+      base_condition = control_condition
+    )
+    save(ttest_result, file = save_path)
+  }
+  ##
 
   ## Compute "signed" p-value in precursor level
-  for (method in names(ttest_result0)) {
-    signed_pvalue_table <- ttest_result0[[method]][[1]] %>% 
+  for (method in names(ttest_result)) {
+    signed_pvalue_table <- ttest_result[[method]][[1]] %>% 
       select(experiment, protein_id, precursor_id, p.value, estimate) %>%
       mutate(comparison_1 = subconditions[i],
              comparison_2 = subconditions[i + 1],

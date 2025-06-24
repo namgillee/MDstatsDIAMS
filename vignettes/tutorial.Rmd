@@ -14,20 +14,22 @@ output:
 This is a tutorial for performing downstream analysis with **MDstatsDIAMS** using
 quantitative DIA reports obtained from various software platforms.
 
-## Importing DIA Reports
+## Converting DIA Reports into Standard Format
 
-To import various report formats, **MDstatsDIAMS** supports **MSstats** report format.
-Once a DIA report has been imported into **MSstats** format by using MSstatsConvert,
-it can be converted into **MDstatsDIAMS** standard report format. Here are some
-examples.
+To convert various report formats into **MDstatsDIAMS** standard format,
+**MDstatsDIAMS** supports **MSstats** report format.
+Once a DIA report has been imported into **MSstats** format by using
+**MSstatsConvert**, it can be converted into **MDstatsDIAMS** standard report
+format. Here are some examples.
 
 ### Importing Spectronaut
 
-A **Spectronaut** report can be converted into standard format conveniently.
+A **Spectronaut** report can be converted into standard format directly.
 
-```{r sn_to_standard, eval=FALSE}
+```{r sn_to_standard, eval=TRUE}
 sn_report <- arrow::read_parquet(
-  "data/lip_quant_staurosporine_hela_sn_report.parquet"
+  paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/",
+         "data/lip_quant_staurosporine_hela_sn_report.parquet")
 )
 
 standard_report <- convert_sn_to_standard(sn_report) 
@@ -38,8 +40,9 @@ standard_report <- convert_sn_to_standard(sn_report)
 
 **MaxQuant** report consists `evidence.txt` and `proteinGroups.txt` files.
 
-```{r mq_paths, eval=FALSE}
-mq_root <- "data/lip_quant_staurosporine_hela_mq_report_4conds/"
+```{r mq_paths, eval=TRUE}
+mq_root <- paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/",
+                  "data/lip_quant_staurosporine_hela_mq_report_4conds/")
 
 mq_evidence_path <- paste0(mq_root, "evidence.txt")
 mq_proteingroups_path <- paste0(mq_root, "proteinGroups.txt")
@@ -47,7 +50,7 @@ mq_proteingroups_path <- paste0(mq_root, "proteinGroups.txt")
 
 It is required to generate `annotation.txt' file in prior for **MSstats**.
 
-```{r create_mq_annotation, eval=FALSE}
+```{r create_mq_annotation, eval=TRUE}
 # Set path to annotation file
 annotation_path <- paste0(mq_root, "temp_annotation.txt")
 
@@ -56,7 +59,7 @@ mq_ev <- read.delim(mq_evidence_path)
 mq_pg <- read.delim(mq_proteingroups_path)
 
 # Create annotation file
-annoation_resu_path <- create_mq_annotation_file(
+annotation_resu_path <- create_mq_annotation_file(
   mq_evidence = mq_ev,
   annotation_path = annotation_path,
   n_replicates_per_condition = 4
@@ -66,13 +69,13 @@ if (annotation_resu_path == "") {
   print("No annotation file was created.")
   mq_an <- NULL
 } else {
-  mq_an <- read.delim(annoation_resu_path)
+  mq_an <- read.delim(annotation_resu_path)
 }
 ```
 
 **MSstats** converts a **MaxQuant** report into **MSstats** format.
 
-```{r mq_to_msstats, eval=FALSE}
+```{r mq_to_msstats, eval=TRUE}
 # Convert to MSstats
 mq_in_msstats <- MSstatsConvert::MaxQtoMSstatsFormat(
   evidence = mq_ev, annotation = mq_an, proteinGroups = mq_pg,
@@ -82,7 +85,7 @@ mq_in_msstats <- MSstatsConvert::MaxQtoMSstatsFormat(
 
 The **MDstatsDIAMS** converts **MSstats** format into standard format.
 
-```{r mq_msstats_to_standard, eval=FALSE}
+```{r mq_msstats_to_standard, eval=TRUE}
 standard_report <- convert_ms_to_standard(mq_in_msstats)
 ```
 
@@ -91,9 +94,10 @@ standard_report <- convert_ms_to_standard(mq_in_msstats)
 
 A **Skyline** report can be converted into **MSstats** format.
 
-```{r skyline_to_msstats, eval=FALSE}
+```{r skyline_to_msstats, eval=TRUE}
 sk_report <- arrow::read_parquet(
-  "data/lip_quant_staurosporine_hela_sk_transition_4conds.parquet"
+  paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/",
+         "data/lip_quant_staurosporine_hela_sk_transition_4conds.parquet")
 )
 
 sk_in_msstats <- MSstatsConvert::SkylinetoMSstatsFormat(
