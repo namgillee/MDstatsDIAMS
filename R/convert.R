@@ -194,7 +194,7 @@ create_mq_annotation_file <- function(
       print(paste0("Overwriting ", annotation_path, "."))
     } else {
       print(paste0("Not overwriting ", annotation_path, ". Stopping."))
-      return("")
+      return(annotation_path)
     }
   }
 

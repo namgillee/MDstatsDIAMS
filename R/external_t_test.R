@@ -48,13 +48,12 @@ compute_mslip_on_stdreport <- function(report) {
     )
 
     # Convert columns to a standard ttest result format.
-    # Note: The peptide_sequence column is not standard and may be redundant.
     # The Label, SE, issue columns will remain the same.
     lip_model <- model[["LiP.Model"]]
     lip_model <- lip_model %>%
       dplyr::rename(
         protein_id = ProteinName,
-        peptide_sequence = PeptideSequence,
+        precursor_id = PeptideSequence,
         statistic = Tvalue,
         df = DF,
         p.value = pvalue,
