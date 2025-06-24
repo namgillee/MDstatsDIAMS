@@ -50,7 +50,7 @@ independent_t_test <- function(
 #' @param groupdf A subset of precursor report which contains two columns for
 #' log10-transformed precursor quantities of conditions x and y
 #' @param column_x column name for x
-#' @param column y column name for y
+#' @param column_y column name for y
 #' @return a data frame of the independent samples t-test results
 compute_indep_on_group <- function(
   groupdf,

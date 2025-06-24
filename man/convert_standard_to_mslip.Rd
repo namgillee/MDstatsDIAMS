@@ -4,14 +4,17 @@
 \alias{convert_standard_to_mslip}
 \title{Convert standard report into MSstatsLiP format}
 \usage{
-convert_standard_to_mslip(report)
+convert_standard_to_mslip(report, drop_experiment = FALSE)
 }
 \arguments{
 \item{report}{A standard report. Required columns are condition, replicate,
 experiment, protein_id, precursor_id, fragment_id, fragment_peak_area.}
+
+\item{drop_experiment}{If TRUE, \code{experiment} column is removed from output.
+Default is FALSE.}
 }
 \value{
-A standard report with columns ProteinName, PeptideSequence,
+An MSstatsLiP format with columns ProteinName, PeptideSequence,
 PrecursorCharge, FragmentIon, ProductCharge, Condition, BioReplicate, Run,
 Intensity, FULL_PEPTIDE
 }

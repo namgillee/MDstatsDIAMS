@@ -35,7 +35,7 @@ Line plot for contingency tables
 }
 \examples{
   report <- simulate_fragment_ion_report(default_params)
-  resu <- run_ttests(report, boot_denom_eps = 0.5)
+  resu <- run_ttests(report, boot_denom_eps = 0.3)
   tables <- compute_contingency_tables(resu, alpha = 0.05)
   x <- default_params$prec_mean_condition_shift[-c(1, 2)]
   line_plot_contingency_tables(

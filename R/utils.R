@@ -121,7 +121,9 @@ run_ttests <- function(
   method_name_func <- list(
     paired = compute_paired_on_stdreport,
     independent = compute_indep_on_stdreport,
-    shrinkage = compute_shrink_on_stdreport
+    shrinkage = compute_shrink_on_stdreport,
+    msstatslip = compute_mslip_on_stdreport,
+    rots = compute_rots_on_stdreport
   )
 
   # Set method names
@@ -254,7 +256,7 @@ compute_contingency_tables <- function(
 #' @param legend_cex cex for the legend
 #' @examples
 #'   report <- simulate_fragment_ion_report(default_params)
-#'   resu <- run_ttests(report, boot_denom_eps = 0.5)
+#'   resu <- run_ttests(report, boot_denom_eps = 0.3)
 #'   tables <- compute_contingency_tables(resu, alpha = 0.05)
 #'   x <- default_params$prec_mean_condition_shift[-c(1, 2)]
 #'   line_plot_contingency_tables(
@@ -306,9 +308,10 @@ line_plot_contingency_tables <- function(
 #' @param add_legend If not FALSE, legend is added in the plot
 #' @param legend_ncol ncol for the legend
 #' @param legend_cex cex for the legend
+#' @param ... Additional arguments to barplot()
 #' @examples
 #'   report <- simulate_fragment_ion_report(default_params)
-#'   resu <- run_ttests(report, boot_denom_eps = 0.5)
+#'   resu <- run_ttests(report, boot_denom_eps = 0.3)
 #'   tables <- compute_contingency_tables(resu, alpha = 0.05)
 #'   bar_plot_contingency_tables(
 #'     tables[1], xlab = "Comparison", ylab = "1 - Type I error rate",

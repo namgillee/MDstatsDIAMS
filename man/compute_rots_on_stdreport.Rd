@@ -13,8 +13,8 @@ The condition column is supposed to consist of two conditions.}
 }
 \value{
 a data frame of the test results. Columns are
-experiment, protein_id, precursor_id, statistic, df, p.value, estimate.
-And rows are precursors.
+experiment, protein_id, precursor_id, statistic, df, p.value, estimate,
+FDR, Label. And rows are precursors.
 }
 \description{
 Run ROTS comparing two conditions on a standard report

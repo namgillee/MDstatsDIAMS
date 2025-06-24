@@ -46,6 +46,7 @@ Imports:
 Suggests: 
     lintr
 Remotes:
+    bioc::release/ROTS,
     bioc::release/MSstatsConvert,
     bioc::release/MSstatsLiP
 Encoding: UTF-8
