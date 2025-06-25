@@ -47,7 +47,6 @@ Suggests:
     lintr
 Remotes:
     bioc::release/ROTS,
-    bioc::release/MSstats,
     bioc::release/MSstatsLiP
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
