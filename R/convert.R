@@ -109,6 +109,83 @@ convert_ms_to_standard <- function(ms_report) {
 }
 
 
+#' Convert MaxQuant report into standard report
+#'
+#' Convert MaxQuant report into standard report. MaxQuant report consists of
+#' evidence.txt data, msms.txt data, and annotation data.
+#' @param evidence MaxQuant evidence.txt data
+#' @param msms MqxQuant msms.txt data
+#' @param annotation Data frame with columns Raw.file, Condition, BioReplicate, 
+#'   IsotopeLabelType
+#' @importFrom dplyr %>%
+#' @return A standard report with columns condition, replicate, experiment,
+#'   protein_id, precursor_id, fragment_id, fragment_peak_area
+#' @export
+convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
+
+  # Choose columns
+  evidence <- evidence %>% select(Modified.sequence, Proteins, Raw.file,
+                                  Experiment, Charge, Q.value, Intensity, id)
+
+  # Filter by q-value
+  evidence <- evidence %>% filter(Q.value <= 0.01)
+
+  # Expand msms to fragment ion level.
+  Matches <- strsplit(msms$Matches, ";")
+  Intensities <- strsplit(msms$Intensities, ";")
+  id_top3 <- lapply(
+    Intensities,
+    function(x) {sort.list(as.numeric(x), decreasing = TRUE) <= 3}
+  )
+  n_frags <- sapply(Matches, length)
+  id <- rep(msms$id, n_frags)
+  msms <- data.frame(
+    Matches = unlist(Matches),
+    Intensities = unlist(Intensities),
+    id_top3 = unlist(id_top3),
+    id = unlist(id)
+  )
+
+  # Select top-3 fragment ions for each precursor
+  msms <- msms %>% filter(id_top3)
+
+  # Append Matches and Intensities columns
+  evidence <- evidence %>% left_join(msms, by = "id")
+
+  # Append Raw.file, Condition, BioReplicate, IsotopeLabelType
+  evidence <- evidence %>% left_join(annotation, by = "Raw.file")
+
+  # Rename columns
+  condition_labels <- unique(evidence$Condition)
+  if ("DMSO" %in% condition_labels) {
+    condition_labels <- c("DMSO", condition_labels[condition_labels != "DMSO"])
+  }
+  
+  evidence <- evidence %>%
+    dplyr::mutate(
+      condition = factor(.data$Condition, labels = condition_labels),
+      experiment = "EXP",
+      precursor_id = paste0(.data$Modified.sequence, ".", .data$Charge),
+      fragment_peak_area = as.numeric(Intensities)
+    ) %>%
+    dplyr::rename(
+      replicate = BioReplicate,
+      protein_id = Proteins,
+      fragment_id = Matches,
+      precursor_quantity = Intensity
+    ) %>%
+    dplyr::select(
+      -c(Raw.file, Condition, Modified.sequence, Charge, Experiment, Q.value,
+         id, IsotopeLabelType, id_top3, Intensities)
+    )
+
+  # Update replicate
+  evidence <- evidence %>%
+    dplyr::group_by(condition, protein_id, precursor_id, fragment_id) %>%
+    dplyr::mutate(replicate = as.numeric(as.factor(.data$replicate)))
+}
+
+
 #' Convert Skyline transition report into standard report
 #'
 #' Convert Skyline transition report into standard report.
@@ -236,22 +313,6 @@ create_annotation_df <- function(
   file_column = "Raw.file",
   exp_column = "Experiment"
 ) {
-
-  # Confirm overwriting annotation file if it already exists
-  if (file.exists(annotation_path)) {
-    ans <- readline(
-      paste0(annotation_path, " already exists. Overwrite? (y/[n])")
-    )
-
-    if (ans == "y") {
-      print(paste0("Overwriting ", annotation_path, "."))
-    } else {
-      print(paste0("Not overwriting ", annotation_path, ". Stopping."))
-      return(annotation_path)
-    }
-  }
-
-  # Create annotation file
   # Assume each sample is a biological replicate
   raw_to_exp_match <- evidence[, c(file_column, exp_column)] %>%
     dplyr::distinct_at(file_column, .keep_all = TRUE)
