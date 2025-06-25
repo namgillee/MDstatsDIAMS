@@ -105,7 +105,8 @@ convert_ms_to_standard <- function(ms_report) {
   # Update replicate
   ms_report <- ms_report %>%
     dplyr::group_by(condition, protein_id, precursor_id, fragment_id) %>%
-    dplyr::mutate(replicate = as.numeric(as.factor(.data$replicate)))
+    dplyr::mutate(replicate = as.numeric(as.factor(.data$replicate))) %>%
+    dplyr::ungroup()
 }
 
 
@@ -182,7 +183,8 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
   # Update replicate
   evidence <- evidence %>%
     dplyr::group_by(condition, protein_id, precursor_id, fragment_id) %>%
-    dplyr::mutate(replicate = as.numeric(as.factor(.data$replicate)))
+    dplyr::mutate(replicate = as.numeric(as.factor(.data$replicate))) %>%
+    dplyr::ungroup()
 }
 
 
@@ -231,7 +233,8 @@ convert_sk_to_standard <- function(sk_report, annotation) {
   # Update replicate
   sk_report <- sk_report %>%
     dplyr::group_by(condition, protein_id, precursor_id, fragment_id) %>%
-    dplyr::mutate(replicate = as.numeric(as.factor(.data$replicate)))
+    dplyr::mutate(replicate = as.numeric(as.factor(.data$replicate))) %>%
+    dplyr::ungroup()
 }
 
 
@@ -256,7 +259,7 @@ convert_standard_to_mslip <- function(report, drop_experiment = FALSE) {
       (as.numeric(as.factor(.data$condition)) - 1) * n_rep_per_cond +
       as.numeric(.data$replicate)
     ),
-    Run = paste(.data$condition, .data$replicate, sep="_"),
+    Run = paste(.data$condition, .data$replicate, sep = "_"),
     Fraction = 1,
     IsotopeLabelType = "L"
   )
@@ -264,11 +267,15 @@ convert_standard_to_mslip <- function(report, drop_experiment = FALSE) {
   # precursor, fragment ion
   split_precursor_id <- strsplit(report$precursor_id, "[.]")
   report[["PeptideSequence"]] <- sapply(split_precursor_id, function(s) s[1])
-  report[["PrecursorCharge"]] <- sapply(split_precursor_id, function(s) s[2])
+  report[["PrecursorCharge"]] <- sapply(
+    split_precursor_id, function(s) as.numeric(s[2])
+  )
 
   split_fragment_id <- strsplit(report$fragment_id, "[.]")
   report[["FragmentIon"]] <- sapply(split_fragment_id, function(s) s[1])
-  report[["ProductCharge"]] <- sapply(split_fragment_id, function(s) s[2])
+  report[["ProductCharge"]] <- sapply(
+    split_fragment_id, function(s) as.numeric(s[2])
+  )
 
   # condition, experiment
   report <- report %>%
