@@ -1,5 +1,5 @@
 ---
-title: "MSstatsDIAMS for Precursor-Level Differential Analysis of DIA Data"
+title: "MDstatsDIAMS for Precursor-Level Differential Analysis of DIA Data"
 author: 
   - Namgil Lee^[Kangwon National University, and Bionsight Inc., namgil.lee@kangwon.ac.kr], Hojin Yoo^[Bionsight Inc.], Juhyoung Kim^[Kangwon National University], Heejung Yang^[Kangwon National University, and Bionsight Inc., heejyang@kangwon.ac.kr]
 date: "June 23, 2025"
@@ -14,19 +14,25 @@ output:
 This is a tutorial for performing downstream analysis with **MDstatsDIAMS** using
 quantitative DIA reports obtained from various software platforms.
 
+```{r import, message=FALSE}
+library(MDstatsDIAMS)
+```
+
 ## Converting DIA Reports into Standard Format
 
 To convert various report formats into **MDstatsDIAMS** standard format,
-**MDstatsDIAMS** supports **MSstats** report format.
-Once a DIA report has been imported into **MSstats** format by using
-**MSstatsConvert**, it can be converted into **MDstatsDIAMS** standard report
-format. Here are some examples.
+**MDstatsDIAMS** provides both direct methods and indirect methods.
+For direct methods, **Spectronaut**, **MaxQuant**, **Skyline**, and **MSstats**
+report formats can be directly converted to standard report format.
+For indirect methods, **MSstats** converters can convert various report formats
+into **MSstats** report format, and **MDstatsDIAMS** can convert it into
+standard report format. Here are some examples.
 
 ### Importing Spectronaut
 
 A **Spectronaut** report can be converted into standard format directly.
 
-```{r sn_to_standard, eval=TRUE}
+```{r sn_to_standard, eval=FALSE}
 sn_report <- arrow::read_parquet(
   paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/",
          "data/lip_quant_staurosporine_hela_sn_report.parquet")
@@ -38,94 +44,75 @@ standard_report <- convert_sn_to_standard(sn_report)
 
 ### Importing MaxQuant
 
-**MaxQuant** report consists `evidence.txt` and `proteinGroups.txt` files.
+**MaxQuant** report consists `evidence.txt`, `msms.txt`, and `proteinGroups.txt`
+files. A **MaxQuant** report can be converted a standard report as follows.
 
 ```{r mq_paths, eval=TRUE}
+## Load MaxQuant evidence.txt and msms.txt files
 mq_root <- paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/",
                   "data/lip_quant_staurosporine_hela_mq_report_4conds/")
 
 mq_evidence_path <- paste0(mq_root, "evidence.txt")
-mq_proteingroups_path <- paste0(mq_root, "proteinGroups.txt")
-```
+mq_msms_path <- paste0(mq_root, "msms.txt")
 
-It is required to generate `annotation.txt' file in prior for **MSstats**.
-
-```{r create_mq_annotation, eval=TRUE}
-# Set path to annotation file
-annotation_path <- paste0(mq_root, "temp_annotation.txt")
-
-# Import MaxQuant files
 mq_ev <- read.delim(mq_evidence_path)
-mq_pg <- read.delim(mq_proteingroups_path)
+mq_msms <- read.delim(mq_msms_path)
 
-# Create annotation file
-annotation_resu_path <- create_mq_annotation_file(
-  mq_evidence = mq_ev,
-  annotation_path = annotation_path,
+##  It is required to generate `annotation.txt' file in prior for **MSstats**.
+mq_an <- create_annotation_df(
+  evidence = mq_ev,
   n_replicates_per_condition = 4
 )
 
-if (annotation_resu_path == "") {
-  print("No annotation file was created.")
-  mq_an <- NULL
-} else {
-  mq_an <- read.delim(annotation_resu_path)
-}
-```
-
-**MSstats** converts a **MaxQuant** report into **MSstats** format.
-
-```{r mq_to_msstats, eval=TRUE}
-# Convert to MSstats
-mq_in_msstats <- MSstatsConvert::MaxQtoMSstatsFormat(
-  evidence = mq_ev, annotation = mq_an, proteinGroups = mq_pg,
-  use_log_file = FALSE, verbose = FALSE
-)
-```
-
-The **MDstatsDIAMS** converts **MSstats** format into standard format.
-
-```{r mq_msstats_to_standard, eval=TRUE}
-standard_report <- convert_ms_to_standard(mq_in_msstats)
+## The **MaxQuant** is converted into standard format.
+standard_report <- convert_mq_to_standard(mq_ev, mq_msms, mq_an)
 ```
 
 
 ### Importing Skyline
 
-A **Skyline** report can be converted into **MSstats** format.
+A **Skyline** transition report can be converted into standard format after an 
+annotation data is prepared.
 
-```{r skyline_to_msstats, eval=TRUE}
+```{r skyline_to_msstats, eval=FALSE}
 sk_report <- arrow::read_parquet(
   paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/",
          "data/lip_quant_staurosporine_hela_sk_transition_4conds.parquet")
 )
 
-sk_in_msstats <- MSstatsConvert::SkylinetoMSstatsFormat(
-  sk_report, use_log_file = FALSE, verbose = FALSE
+# Make an annotation data frame
+sk_an <- data.frame(
+  Condition = rep(paste0("CON", c(1, 4, 5, 8)), each = 4),
+  Replicate = paste0("StauroDoseResp-", c(1:4, 17:24, 33:36)),
+  Run = paste0("StauroDoseResp-", c(1:4, 17:24, 33:36))
 )
-```
 
-The **MDstatsDIAMS** converts **MSstats** format into standard format.
-
-```{r sk_msstats_to_standard, eval=FALSE}
-standard_report <- convert_ms_to_standard(sk_in_msstats)
+# Convert to standard format
+standard_report <- convert_sk_to_standard(sk_report, annotation = sk_an)
 ```
 
 
 ## Running Statistical Tests of Mean Differences Between Two Groups
 
-**MDstatsDIAMS** implemented differential analysis methods on precursor level,
-including fundamental t-test methods (`paired`: paired t-test, `independent`:
-independent samples t-test, `shrinkage`: shrinkage t-test), as well as interface
-for using external methods (`msstatslip`: **MSstatsLiP**, `rots`: **ROTS**).
+In **MDstatsDIAMS**, precursor-level differential analysis methods are 
+available, including fundamental t-test methods (`paired`: paired t-test,
+`independent`: independent samples t-test, `shrinkage`: shrinkage t-test),
+as well as external methods (`msstatslip`: **MSstatsLiP**, `rots`: **ROTS**).
 
 The `run_ttests()` will run statistical methods specified by `method_names =`
 for comparing a base condition (e.g., "DMSO") with all the other conditions. If
 `method_names = NULL` (default), all the available methods will be run.
 
 ```{r run_ttests, eval=FALSE}
-test_results <- run_ttest(
-  report = standard_report, method_names = NULL, 
+## Select a subset of proteins to reduce time cost
+n_proteins <- 100
+set.seed(1111)
+sampled <- sample(unique(standard_report$protein_id), n_proteins)
+
+sample_report <- standard_report[standard_report$protein_id %in% sampled, ]
+
+test_results <- run_ttests(
+  report = sample_report, method_names = NULL
 )
 
 print(names(test_results))
