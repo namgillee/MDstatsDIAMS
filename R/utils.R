@@ -110,12 +110,14 @@ compute_cov_unequal_replicates <- function(report_df) {
 #' @param boot_denom_eps A parameter for shrinkage t-test.
 #' @param base_condition Base condition. If NULL, the first condition among the
 #'   unique list of the condition column is selected. Default to NULL.
+#' @param verbose TRUE to print messages.
 #' @importFrom dplyr %>%
 #' @return A list of analysis results of the given methods. Each analysis result
 #'   is a list of pairwise comparison results.
 #' @export
 run_ttests <- function(
-  report, method_names = NULL, boot_denom_eps = 0.3, base_condition = NULL
+  report, method_names = NULL, boot_denom_eps = 0.3, base_condition = NULL,
+  verbose = TRUE
 ) {
   # List of available methods
   method_name_func <- list(
@@ -141,7 +143,9 @@ run_ttests <- function(
     )
     method_names <- method_names[!id_name_not_exist]
   }
-  print(paste(c("Running the test methods:", method_names), collapse = " "))
+
+  if (verbose)
+    message(paste(c("Running the test methods:", method_names), collapse = " "))
 
   # Set base_condition
   conditions <- unique(report$condition)
@@ -149,7 +153,7 @@ run_ttests <- function(
   if (is.null(base_condition)) {
     base_condition <- conditions[1]
   } else if (!(base_condition %in% conditions)) {
-    print(paste(base_condition, "is not in the conditions. Using default."))
+    warning(paste(base_condition, "is not in the conditions. Using default."))
     base_condition <- conditions[1]
   }
 
@@ -164,6 +168,9 @@ run_ttests <- function(
   test_results <- vector("list", length(method_names))
   names(test_results) <- method_names
   for (method_name in method_names) {
+    if (verbose)
+      message(paste(method_name, "..."))
+
     method_func <- method_name_func[[method_name]]
 
     ## 2. Iterate across comparisons
@@ -173,7 +180,7 @@ run_ttests <- function(
       comparison <- paste0(base_condition, "/", cond)
 
       report_twoconds <- report %>% dplyr::filter(
-        report$condition == base_condition | report$condition == cond
+        .data$condition == base_condition | .data$condition == cond
       )
 
       result0 <- NULL
