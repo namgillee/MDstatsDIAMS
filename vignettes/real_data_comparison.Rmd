@@ -266,8 +266,8 @@ for (i in 1:(num_cond - 1)) {
   for (method in names(ttest_result)) {
     signed_pvalue_table <- ttest_result[[method]][[1]] %>% 
       select(experiment, protein_id, precursor_id, p.value, estimate) %>%
-      mutate(comparison_1 = subconditions[i],
-             comparison_2 = subconditions[i + 1],
+      mutate(comparison_1 = control_condition,
+             comparison_2 = treat_condition,
              sign_of_test = sign(estimate)) %>%
       filter(!is.na(p.value))
 
