@@ -136,7 +136,7 @@ that were found significant between two conditions by the table row
 as `lfdr` can be supplied for determining 
 
 ```{r print_contingency, eval=FALSE}
-tables <- compute_contingency_table(
+tables <- compute_contingency_tables(
   lfdr_results, alpha = 0.05, q_value_column = 'lfdr'
 )
 
@@ -147,7 +147,8 @@ The **MDstatsMDIAMS** can draw line plots for the proportion of rejected
 precursors across comparisons for every statistical methods.
 
 ```{r plot_line, eval=FALSE}
-line_plot_contingency_tables(x = c(4, 5, 8), tables = tables, rejected = TRUE)
+line_plot_contingency_tables(x = c(1, 2, 5), tables = tables, rejected = TRUE,
+                             xlabel = "DMSO vs Dose, log10 (nM)")
 ```
 
 The **MDstatsMDIAMS** can draw bar plots, alternatively.

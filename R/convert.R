@@ -168,7 +168,7 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
                     Condition, .keep_all = TRUE)
 
   # Rename columns
-  condition_labels <- unique(evidence$Condition)
+  condition_labels <- unique(annotation$Condition)
   if ("DMSO" %in% condition_labels) {
     condition_labels <- c("DMSO", condition_labels[condition_labels != "DMSO"])
   }
