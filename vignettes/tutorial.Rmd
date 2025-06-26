@@ -143,16 +143,31 @@ tables <- compute_contingency_tables(
 print(tables)
 ```
 
-The **MDstatsMDIAMS** can draw line plots for the proportion of rejected
+The **MDstatsMDIAMS** can draw line plots for the number of rejected
 precursors across comparisons for every statistical methods.
 
 ```{r plot_line, eval=FALSE}
-line_plot_contingency_tables(x = c(1, 2, 5), tables = tables, rejected = TRUE,
-                             xlabel = "DMSO vs Dose, log10 (nM)")
+line_plot_contingency_tables(
+  x = c(10, 100, 100000), tables = tables, rejected = TRUE,
+  xlab = "DMSO vs Drug (nM)",
+  scale_factor = 1, log = "x",
+  ylab = "Number of significant peptides", ylim = c(0, 150),
+  cex.lab = 1.2, cex = 2, lwd = 2.3,
+  add_legend = TRUE, legend_coord = "topleft", legend_cex = 1.2
+)
 ```
 
 The **MDstatsMDIAMS** can draw bar plots, alternatively.
 
 ```{r plot_bar, eval=FALSE}
-bar_plot_contingency_tables(tables = tables, rejected = TRUE)
+bar_plot_contingency_tables(
+  tables = tables, rejected = TRUE, scale_factor = 1,
+  ylab = "Number of significant precursors",
+  ylim = c(0, 150),
+  xlab = "DMSO vs Drug (nM)",
+  cex.lab = 1.2,
+  add_legend = TRUE,
+  legend_ncol = 3,
+  legend_cex = 1.2
+)
 ```
