@@ -11,12 +11,12 @@
 #' @export
 compute_mslip_on_stdreport <- function(report) {
   if (nrow(report) != dplyr::n_distinct(
-    report[, c("experiment", "condition", "replicate", "protein_id", 
+    report[, c("experiment", "condition", "replicate", "protein_id",
                "precursor_id", "fragment_id")])) {
     warning(paste("Rows in the report must be distinct but they are not.",
                   "Removing duplicate rows..."))
     report <- report %>%
-      dplyr::distinct(experiment, condition, replicate, protein_id, 
+      dplyr::distinct(experiment, condition, replicate, protein_id,
                       precursor_id, fragment_id, .keep_all = TRUE)
   }
 
