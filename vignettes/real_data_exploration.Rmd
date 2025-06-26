@@ -29,7 +29,7 @@ n_protein <- 100
 
 # remove_intermediate_reports:
 #   If TRUE, remove report from environment if not used in further steps. 
-#   Default to FALSE.
+#   Default is TRUE.
 remove_intermediate_reports <- TRUE
 ```
 

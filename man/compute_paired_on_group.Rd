@@ -16,7 +16,7 @@ log10-transformed fragment ion quantities of conditions x and y}
 
 \item{column_x}{column name for x}
 
-\item{column}{y column name for y}
+\item{column_y}{column name for y}
 }
 \value{
 a data frame of the paired t-test results

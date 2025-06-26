@@ -30,7 +30,7 @@ rbetamixture <- function(n, shape1s = 1, shape2s = 1) {
   out <- rep(-1, n)
   for (i in 1 : n) {
     id <- id_components[i]
-    out[i] <- rbeta(1, shape1s[id], shape2s[id])
+    out[i] <- stats::rbeta(1, shape1s[id], shape2s[id])
   }
 
   return(out)

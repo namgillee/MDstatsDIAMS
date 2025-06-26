@@ -30,7 +30,7 @@ paired_t_test <- function(
   }
 
   # perform paired t-test
-  ttest_out <- t.test(
+  ttest_out <- stats::t.test(
     quantity1[!is_na], quantity2[!is_na], paired = TRUE, conf.level = conf_level
   )
   result <- list(
@@ -48,7 +48,7 @@ paired_t_test <- function(
 #' @param groupdf A subset of fragment ion report which contains two columns for
 #' log10-transformed fragment ion quantities of conditions x and y
 #' @param column_x column name for x
-#' @param column y column name for y
+#' @param column_y column name for y
 #' @return a data frame of the paired t-test results
 compute_paired_on_group <- function(
   groupdf,
@@ -97,6 +97,4 @@ compute_paired_on_stdreport <- function(report) {
     ) %>%
     dplyr::group_modify(~compute_paired_on_group(.x)) %>%
     as.data.frame()
-
-  return(result_paired0)
 }

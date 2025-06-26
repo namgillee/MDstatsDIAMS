@@ -8,7 +8,8 @@ run_ttests(
   report,
   method_names = NULL,
   boot_denom_eps = 0.3,
-  base_condition = NULL
+  base_condition = NULL,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ If NULL, it is set to all the method names available. Defaults to NULL.}
 
 \item{base_condition}{Base condition. If NULL, the first condition among the
 unique list of the condition column is selected. Default to NULL.}
+
+\item{verbose}{TRUE to print messages.}
 }
 \value{
 A list of analysis results of the given methods. Each analysis result

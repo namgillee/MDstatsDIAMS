@@ -48,20 +48,22 @@ sw_normalize_values_df <- function(
     id_window_start <- max(1, r + step_size / 2 - window_size / 2)
     id_window_end <- min(data_size, r + step_size / 2 + window_size / 2 - 1)
     y_sorted <- sort(sorted_values_original[id_window_start : id_window_end])
-    cdf <- stepfun(y_sorted,
-                   (0 : length(y_sorted)) / (length(y_sorted) + 0.0001))
+    cdf <- stats::stepfun(y_sorted,
+                          (0 : length(y_sorted)) / (length(y_sorted) + 0.0001))
 
     # Transform
     id_end <- min(data_size, r + step_size - 1)
     values_original <- sorted_values_df[[normalized_value_column]][r : id_end]
-    sorted_values_df[[normalized_value_column]][r : id_end] <- qnorm(
+    sorted_values_df[[normalized_value_column]][r : id_end] <- stats::qnorm(
       cdf(values_original)
     )
 
     if (reconstruct) {
-      y_quantiles <- quantile(values_original, c(0.05, 0.95), na.rm = TRUE)
+      y_quantiles <- stats::quantile(
+        values_original, c(0.05, 0.95), na.rm = TRUE
+      )
       mn <- mean(y_quantiles)
-      std <- diff(y_quantiles) / (qnorm(0.95) - qnorm(0.05))
+      std <- diff(y_quantiles) / (stats::qnorm(0.95) - stats::qnorm(0.05))
       sorted_values_df[[normalized_value_column]][r : id_end] <- mn +
         std * sorted_values_df[[normalized_value_column]][r : id_end]
     }
@@ -119,14 +121,14 @@ ca_normalize_values_df <- function(
     y <- values_df[[normalized_value_column]][
       values_df[[category_column]] == ca
     ]
-    cdf <- stepfun(sort(y), (0 : length(y)) / (length(y) + 0.0001))
+    cdf <- stats::stepfun(sort(y), (0 : length(y)) / (length(y) + 0.0001))
     values_df[[normalized_value_column]][values_df[[category_column]] == ca] <-
-      qnorm(cdf(y))
+      stats::qnorm(cdf(y))
 
     if (reconstruct) {
       y_quantiles <- quantile(y, c(0.05, 0.95), na.rm = TRUE)
       mn <- mean(y_quantiles)
-      std <- diff(y_quantiles) / (qnorm(0.95) - qnorm(0.05))
+      std <- diff(y_quantiles) / (stats::qnorm(0.95) - stats::qnorm(0.05))
       values_df[[normalized_value_column]][
         values_df[[category_column]] == ca
       ] <- mn + std *

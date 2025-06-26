@@ -6,7 +6,7 @@
 .comp_cov_uneq_repl <- function(x) {
 
   # compute the sample variance
-  var_x <- var(x)
+  var_x <- stats::var(x)
 
   # estimate a mixture of normal and exp-beta distributions
   fit_kde <- stats::density(x)
@@ -14,16 +14,14 @@
   idx_max_kde <- which.max(fit_kde$y)
   x_mode <- fit_kde$x[idx_max_kde]
 
-  sigma_left <- diff(quantile(x_mode - x[x < x_mode], (c(4, 9)) / 10)) /
-    diff(qnorm(0.5 + (c(4, 9)) / 20))
-  sigma_right <- diff(quantile(x[x > x_mode] - x_mode, (c(4, 9)) / 10)) /
-    diff(qnorm(0.5 + (c(4, 9)) / 20))
+  sigma_left <- diff(stats::quantile(x_mode - x[x < x_mode], (c(4, 9)) / 10)) /
+    diff(stats::qnorm(0.5 + (c(4, 9)) / 20))
+  sigma_right <- diff(stats::quantile(x[x > x_mode] - x_mode, (c(4, 9)) / 10)) /
+    diff(stats::qnorm(0.5 + (c(4, 9)) / 20))
 
   init_sigma <- min(sigma_left, sigma_right)
 
   cov_unequal_replicates <- max(0, var_x - init_sigma^2)
-
-  return(cov_unequal_replicates)
 }
 
 
@@ -56,7 +54,7 @@ compute_cov_unequal_replicates <- function(report_df) {
 
   # median-normalize them by each condition
   #   A negative value is not removed but ignored.
-  median_log10_quantity <- median(
+  median_log10_quantity <- stats::median(
     precursor_df$log10_peptide_quantity, na.rm = TRUE
   )
 
@@ -66,7 +64,7 @@ compute_cov_unequal_replicates <- function(report_df) {
     ) %>%
     dplyr::mutate(
       median_log10_quantity_by_condition =
-        median(.data$log10_peptide_quantity, na.rm = TRUE)
+        stats::median(.data$log10_peptide_quantity, na.rm = TRUE)
     ) %>%
     dplyr::mutate(
       log10_peptide_quantity =
@@ -112,18 +110,22 @@ compute_cov_unequal_replicates <- function(report_df) {
 #' @param boot_denom_eps A parameter for shrinkage t-test.
 #' @param base_condition Base condition. If NULL, the first condition among the
 #'   unique list of the condition column is selected. Default to NULL.
+#' @param verbose TRUE to print messages.
 #' @importFrom dplyr %>%
 #' @return A list of analysis results of the given methods. Each analysis result
 #'   is a list of pairwise comparison results.
 #' @export
 run_ttests <- function(
-  report, method_names = NULL, boot_denom_eps = 0.3, base_condition = NULL
+  report, method_names = NULL, boot_denom_eps = 0.3, base_condition = NULL,
+  verbose = TRUE
 ) {
   # List of available methods
   method_name_func <- list(
     paired = compute_paired_on_stdreport,
     independent = compute_indep_on_stdreport,
-    shrinkage = compute_shrink_on_stdreport
+    shrinkage = compute_shrink_on_stdreport,
+    msstatslip = compute_mslip_on_stdreport,
+    rots = compute_rots_on_stdreport
   )
 
   # Set method names
@@ -141,7 +143,9 @@ run_ttests <- function(
     )
     method_names <- method_names[!id_name_not_exist]
   }
-  print(paste(c("Running the test methods:", method_names), collapse = " "))
+
+  if (verbose)
+    message(paste(c("Running the test methods:", method_names), collapse = " "))
 
   # Set base_condition
   conditions <- unique(report$condition)
@@ -149,7 +153,7 @@ run_ttests <- function(
   if (is.null(base_condition)) {
     base_condition <- conditions[1]
   } else if (!(base_condition %in% conditions)) {
-    print(paste(base_condition, "is not in the conditions. Using default."))
+    warning(paste(base_condition, "is not in the conditions. Using default."))
     base_condition <- conditions[1]
   }
 
@@ -164,6 +168,9 @@ run_ttests <- function(
   test_results <- vector("list", length(method_names))
   names(test_results) <- method_names
   for (method_name in method_names) {
+    if (verbose)
+      message(paste(method_name, "..."))
+
     method_func <- method_name_func[[method_name]]
 
     ## 2. Iterate across comparisons
@@ -172,8 +179,8 @@ run_ttests <- function(
     for (cond in cond_rest) {
       comparison <- paste0(base_condition, "/", cond)
 
-      report_twoconds <- report %>% filter(
-        report$condition == base_condition | report$condition == cond
+      report_twoconds <- report %>% dplyr::filter(
+        .data$condition == base_condition | .data$condition == cond
       )
 
       result0 <- NULL
@@ -256,13 +263,13 @@ compute_contingency_tables <- function(
 #' @param legend_cex cex for the legend
 #' @examples
 #'   report <- simulate_fragment_ion_report(default_params)
-#'   resu <- run_ttests(report, boot_denom_eps = 0.5)
+#'   resu <- run_ttests(report, boot_denom_eps = 0.3)
 #'   tables <- compute_contingency_tables(resu, alpha = 0.05)
 #'   x <- default_params$prec_mean_condition_shift[-c(1, 2)]
 #'   line_plot_contingency_tables(
 #'     x, tables[-1], xlab = expression(delta),
 #'     ylab = "1 - Type II error rate", cex.lab = 1.5
-#'   )a
+#'   )
 #' @export
 line_plot_contingency_tables <- function(
   x, tables, rejected = TRUE, scale_factor = 1, add_legend = FALSE,
@@ -289,13 +296,13 @@ line_plot_contingency_tables <- function(
   seq_hcl_colors <- rep(2 : 4, ceiling(n_methods / 3))
   line_types <- rep(1 : 2, each = ceiling(n_methods / 2))
   pch_types <- c(1, 2, 6, 3, 4, 16, 7 : 10)[1 : n_methods]
-  matplot(x, values, type = "o", lty = line_types,
-          col = seq_hcl_colors, pch = pch_types, ...)
+  graphics::matplot(x, values, type = "o", lty = line_types,
+                    col = seq_hcl_colors, pch = pch_types, ...)
 
   if (add_legend != FALSE) {
-    legend(legend_coord, legend = name_methods, lty = line_types,
-           col = seq_hcl_colors, pch = pch_types, cex = legend_cex,
-           lwd = 2)
+    graphics::legend(legend_coord, legend = name_methods, lty = line_types,
+                     col = seq_hcl_colors, pch = pch_types, cex = legend_cex,
+                     lwd = 2)
   }
 }
 
@@ -308,9 +315,10 @@ line_plot_contingency_tables <- function(
 #' @param add_legend If not FALSE, legend is added in the plot
 #' @param legend_ncol ncol for the legend
 #' @param legend_cex cex for the legend
+#' @param ... Additional arguments to barplot()
 #' @examples
 #'   report <- simulate_fragment_ion_report(default_params)
-#'   resu <- run_ttests(report, boot_denom_eps = 0.5)
+#'   resu <- run_ttests(report, boot_denom_eps = 0.3)
 #'   tables <- compute_contingency_tables(resu, alpha = 0.05)
 #'   bar_plot_contingency_tables(
 #'     tables[1], xlab = "Comparison", ylab = "1 - Type I error rate",
@@ -341,11 +349,11 @@ bar_plot_contingency_tables <- function(
   values <- values * scale_factor
 
   seq_hcl_colors <- colorspace::sequential_hcl(n_methods, "hawaii")
-  barplot(t(values), beside = TRUE, col = seq_hcl_colors, ...)
+  graphics::barplot(t(values), beside = TRUE, col = seq_hcl_colors, ...)
 
   if (add_legend != FALSE) {
     legend_text <- name_methods
-    legend(
+    graphics::legend(
       "top",
       fill = seq_hcl_colors,
       legend = legend_text,

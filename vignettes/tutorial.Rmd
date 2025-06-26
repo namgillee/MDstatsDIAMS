@@ -1,0 +1,174 @@
+---
+title: "MDstatsDIAMS for Precursor-Level Differential Analysis of DIA Data"
+author: 
+  - Namgil Lee^[Kangwon National University, and Bionsight Inc., namgil.lee@kangwon.ac.kr], Hojin Yoo^[Bionsight Inc.], Juhyoung Kim^[Kangwon National University], Heejung Yang^[Kangwon National University, and Bionsight Inc., heejyang@kangwon.ac.kr]
+date: "June 23, 2025"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    code_folding: show
+---
+
+This is a tutorial for performing downstream analysis with **MDstatsDIAMS** using
+quantitative DIA reports obtained from various software platforms.
+
+```{r import, message=FALSE}
+library(MDstatsDIAMS)
+```
+
+## Converting DIA Reports into Standard Format
+
+To convert various report formats into **MDstatsDIAMS** standard format,
+**MDstatsDIAMS** provides both direct methods and indirect methods.
+For direct methods, **Spectronaut**, **MaxQuant**, **Skyline**, and **MSstats**
+report formats can be directly converted to standard report format.
+For indirect methods, **MSstats** converters can convert various report formats
+into **MSstats** report format, and **MDstatsDIAMS** can convert it into
+standard report format. Here are some examples.
+
+### Importing Spectronaut
+
+A **Spectronaut** report can be converted into standard format directly.
+
+```{r sn_to_standard, eval=FALSE}
+sn_report <- arrow::read_parquet(
+  paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/",
+         "data/lip_quant_staurosporine_hela_sn_report.parquet")
+)
+
+standard_report <- convert_sn_to_standard(sn_report) 
+```
+
+
+### Importing MaxQuant
+
+**MaxQuant** report consists `evidence.txt`, `msms.txt`, and `proteinGroups.txt`
+files. A **MaxQuant** report can be converted a standard report as follows.
+
+```{r mq_paths, eval=TRUE}
+## Load MaxQuant evidence.txt and msms.txt files
+mq_root <- paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/",
+                  "data/lip_quant_staurosporine_hela_mq_report_4conds/")
+
+mq_evidence_path <- paste0(mq_root, "evidence.txt")
+mq_msms_path <- paste0(mq_root, "msms.txt")
+
+mq_ev <- read.delim(mq_evidence_path)
+mq_msms <- read.delim(mq_msms_path)
+
+##  It is required to generate `annotation.txt' file in prior for **MSstats**.
+mq_an <- create_annotation_df(
+  evidence = mq_ev,
+  n_replicates_per_condition = 4
+)
+
+## The **MaxQuant** is converted into standard format.
+standard_report <- convert_mq_to_standard(mq_ev, mq_msms, mq_an)
+```
+
+
+### Importing Skyline
+
+A **Skyline** transition report can be converted into standard format after an 
+annotation data is prepared.
+
+```{r skyline_to_msstats, eval=FALSE}
+sk_report <- arrow::read_parquet(
+  paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/",
+         "data/lip_quant_staurosporine_hela_sk_transition_4conds.parquet")
+)
+
+# Make an annotation data frame
+sk_an <- data.frame(
+  Condition = rep(paste0("CON", c(1, 4, 5, 8)), each = 4),
+  Replicate = paste0("StauroDoseResp-", c(1:4, 17:24, 33:36)),
+  Run = paste0("StauroDoseResp-", c(1:4, 17:24, 33:36))
+)
+
+# Convert to standard format
+standard_report <- convert_sk_to_standard(sk_report, annotation = sk_an)
+```
+
+
+## Running Statistical Tests of Mean Differences Between Two Groups
+
+In **MDstatsDIAMS**, precursor-level differential analysis methods are 
+available, including fundamental t-test methods (`paired`: paired t-test,
+`independent`: independent samples t-test, `shrinkage`: shrinkage t-test),
+as well as external methods (`msstatslip`: **MSstatsLiP**, `rots`: **ROTS**).
+
+The `run_ttests()` will run statistical methods specified by `method_names =`
+for comparing a base condition (e.g., "DMSO") with all the other conditions. If
+`method_names = NULL` (default), all the available methods will be run.
+
+```{r run_ttests, eval=FALSE}
+## Select a subset of proteins to reduce time cost
+n_proteins <- 100
+set.seed(1111)
+sampled <- sample(unique(standard_report$protein_id), n_proteins)
+
+sample_report <- standard_report[standard_report$protein_id %in% sampled, ]
+
+test_results <- run_ttests(
+  report = sample_report, method_names = NULL
+)
+
+print(names(test_results))
+print(names(test_results[[1]]))
+```
+
+The test results obtained by `run_ttests()` have `p.value` column in each
+table for every comparisons. The **MDstatsDIAMS** can compute local false
+discovery rate (lfdr) score and append it into the table as `lfdr` column.
+
+```{r compute_lfdr, eval=FALSE}
+lfdr_results <- compute_lfdr_result(test_results)
+```
+
+
+## Making Summary Tables and Plots
+
+The **MDstatsDIAMS** can compute the numbers of precursors
+that were found significant between two conditions by the table row
+`Rejected = TRUE`. The `p.value` or an alternative significance score such
+as `lfdr` can be supplied for determining 
+
+```{r print_contingency, eval=FALSE}
+tables <- compute_contingency_tables(
+  lfdr_results, alpha = 0.05, q_value_column = 'lfdr'
+)
+
+print(tables)
+```
+
+The **MDstatsMDIAMS** can draw line plots for the numbers of precursors
+with significant changes across comparisons for every statistical methods. By
+`rejected = TRUE`, it draws numbers of insignificant precursors.
+
+```{r plot_line, eval=FALSE}
+line_plot_contingency_tables(
+  x = c(10, 100, 100000), tables = tables, rejected = TRUE,
+  xlab = "DMSO vs Drug (nM)",
+  scale_factor = 1, log = "x",
+  ylab = "Number of significant peptides", ylim = c(0, 150),
+  cex.lab = 1.2, cex = 2, lwd = 2.3,
+  add_legend = TRUE, legend_coord = "topleft", legend_cex = 1.2
+)
+```
+
+The **MDstatsMDIAMS** can draw bar plots, alternatively.
+
+```{r plot_bar, eval=FALSE}
+bar_plot_contingency_tables(
+  tables = tables, rejected = TRUE, scale_factor = 1,
+  ylab = "Number of significant precursors",
+  ylim = c(0, 150),
+  xlab = "DMSO vs Drug (nM)",
+  cex.lab = 1.2,
+  add_legend = TRUE,
+  legend_ncol = 3,
+  legend_cex = 1.2
+)
+```

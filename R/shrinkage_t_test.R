@@ -40,7 +40,7 @@ se_diff_shrink <- function(
   dat <- cbind(dat_con1, dat_con2)
 
   # Remove rows with any missing value
-  dat <- na.omit(dat)
+  dat <- stats::na.omit(dat)
   num_replicates <- nrow(dat)
   if (num_replicates < 3) {
     if (verbose) {
@@ -228,9 +228,9 @@ shrinkage_t_test <- function(
   boot_out <- boot::boot(
     cbind(dat_con1, dat_con2), shrinkage_t_statistic_wrapper, R = num_boot
   )
-  boot_var <- var(as.vector(boot_out$t), na.rm = TRUE)
+  boot_var <- stats::var(as.vector(boot_out$t), na.rm = TRUE)
   result$df <- ifelse(boot_var <= 1, Inf, 2 * boot_var / (boot_var - 1))
-  result$p.value <- 2 * (1 - pt(abs(result$statistic), result$df))
+  result$p.value <- 2 * (1 - stats::pt(abs(result$statistic), result$df))
   boot_mean <- mean(as.vector(boot_out$t), na.rm = TRUE)
   result$cv <- sqrt(boot_var) / boot_mean
 
