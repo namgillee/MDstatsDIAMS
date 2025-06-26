@@ -116,7 +116,7 @@ convert_ms_to_standard <- function(ms_report) {
 #' evidence.txt data, msms.txt data, and annotation data.
 #' @param evidence MaxQuant evidence.txt data
 #' @param msms MqxQuant msms.txt data
-#' @param annotation Data frame with columns Raw.file, Condition, BioReplicate, 
+#' @param annotation Data frame with columns Raw.file, Condition, BioReplicate,
 #'   IsotopeLabelType
 #' @importFrom dplyr %>%
 #' @return A standard report with columns condition, replicate, experiment,
@@ -131,18 +131,23 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
   # Filter by q-value
   evidence <- evidence %>% filter(Q.value <= 0.01)
 
+  # Remove decoy
+  evidence <- evidence %>% filter(substr(Proteins, 1, 3) != "CON")
+
   # Expand msms to fragment ion level.
-  Matches <- strsplit(msms$Matches, ";")
-  Intensities <- strsplit(msms$Intensities, ";")
+  matches <- strsplit(msms$Matches, ";")
+  intensities <- strsplit(msms$Intensities, ";")
   id_top3 <- lapply(
-    Intensities,
-    function(x) {sort.list(as.numeric(x), decreasing = TRUE) <= 3}
+    intensities,
+    function(x) {
+      sort.list(as.numeric(x), decreasing = TRUE) <= 3
+    }
   )
-  n_frags <- sapply(Matches, length)
+  n_frags <- sapply(matches, length)
   id <- rep(msms$id, n_frags)
   msms <- data.frame(
-    Matches = unlist(Matches),
-    Intensities = unlist(Intensities),
+    Matches = unlist(matches),
+    Intensities = unlist(intensities),
     id_top3 = unlist(id_top3),
     id = unlist(id)
   )
@@ -156,12 +161,18 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
   # Append Raw.file, Condition, BioReplicate, IsotopeLabelType
   evidence <- evidence %>% left_join(annotation, by = "Raw.file")
 
+  # Choose unique rows with the smallest Q.value
+  evidence <- evidence %>%
+    dplyr::arrange(Q.value) %>%
+    dplyr::distinct(Proteins, Modified.sequence, Charge, Matches, BioReplicate,
+                    Condition, .keep_all = TRUE)
+
   # Rename columns
   condition_labels <- unique(evidence$Condition)
   if ("DMSO" %in% condition_labels) {
     condition_labels <- c("DMSO", condition_labels[condition_labels != "DMSO"])
   }
-  
+
   evidence <- evidence %>%
     dplyr::mutate(
       condition = factor(.data$Condition, labels = condition_labels),
@@ -201,10 +212,10 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
 #'   protein_id, precursor_id, fragment_id, fragment_peak_area
 #' @export
 convert_sk_to_standard <- function(sk_report, annotation) {
-  
+
   sk_report <- sk_report[
     !is.na(sk_report$Area) & sk_report$Area > 1, ]
-  
+
   # Append Condition, Run
   sk_report <- merge(sk_report, annotation, by = "Replicate", all.x = TRUE)
 
@@ -213,7 +224,7 @@ convert_sk_to_standard <- function(sk_report, annotation) {
   if ("DMSO" %in% condition_labels) {
     condition_labels <- c("DMSO", condition_labels[condition_labels != "DMSO"])
   }
-  
+
   sk_report <- sk_report %>%
     dplyr::mutate(
       condition = factor(.data$Condition, labels = condition_labels),
@@ -229,7 +240,7 @@ convert_sk_to_standard <- function(sk_report, annotation) {
     dplyr::select(
       -c(Run, Condition)
     )
-  
+
   # Update replicate
   sk_report <- sk_report %>%
     dplyr::group_by(condition, protein_id, precursor_id, fragment_id) %>%
@@ -287,7 +298,7 @@ convert_standard_to_mslip <- function(report, drop_experiment = FALSE) {
     dplyr::mutate(
       FULL_PEPTIDE = paste(.data$ProteinName, .data$PeptideSequence, sep = "_")
     )
-  
+
   if (drop_experiment) {
     report <- report %>%
       dplyr::select(-c(experiment, replicate, precursor_id, fragment_id))
@@ -308,7 +319,7 @@ convert_standard_to_mslip <- function(report, drop_experiment = FALSE) {
 #' @param evidence A data frame including the columns named by `file_column` and
 #'   `exp_column`.
 #' @param n_replicates_per_condition Number of replicates per condition.
-#'   If not NULL, it is assumed that Experiment is n_condition x 
+#'   If not NULL, it is assumed that Experiment is n_condition x
 #'   n_replicates_per_condition.
 #' @param file_column Column name for run files
 #' @param exp_column Column name for Experiment
@@ -370,4 +381,6 @@ create_annotation_df <- function(
     BioReplicate = seq(from = 1, to = n_samples),
     IsotopeLabelType = rep("L", n_samples)
   )
+
+  return(annotation_tab)
 }

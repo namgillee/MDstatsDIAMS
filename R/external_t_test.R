@@ -10,6 +10,16 @@
 #' @importFrom dplyr %>%
 #' @export
 compute_mslip_on_stdreport <- function(report) {
+  if (nrow(report) != dplyr::n_distinct(
+    report[, c("experiment", "condition", "replicate", "protein_id", 
+               "precursor_id", "fragment_id")])) {
+    warning(paste("Rows in the report must be distinct but they are not.",
+                  "Removing duplicate rows..."))
+    report <- report %>%
+      dplyr::distinct(experiment, condition, replicate, protein_id, 
+                      precursor_id, fragment_id, .keep_all = TRUE)
+  }
+
   # Convert to MSstatsLiP format
   mslip_report <- convert_standard_to_mslip(report, drop_experiment = FALSE)
   experiment_levels <- unique(report$experiment)
