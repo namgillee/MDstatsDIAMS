@@ -143,8 +143,9 @@ tables <- compute_contingency_tables(
 print(tables)
 ```
 
-The **MDstatsMDIAMS** can draw line plots for the number of rejected
-precursors across comparisons for every statistical methods.
+The **MDstatsMDIAMS** can draw line plots for the numbers of precursors
+with significant changes across comparisons for every statistical methods. By
+`rejected = TRUE`, it draws numbers of insignificant precursors.
 
 ```{r plot_line, eval=FALSE}
 line_plot_contingency_tables(
