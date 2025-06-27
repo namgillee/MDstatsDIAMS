@@ -213,6 +213,7 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
 #' @export
 convert_sk_to_standard <- function(sk_report, annotation) {
 
+  sk_report$Area <- as.numeric(sk_report$Area)
   sk_report <- sk_report[
     !is.na(sk_report$Area) & sk_report$Area > 1, ]
 
