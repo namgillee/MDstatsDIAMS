@@ -325,6 +325,7 @@ convert_standard_to_mslip <- function(report, drop_experiment = FALSE) {
 #' @param exp_column Column name for Experiment
 #' @importFrom dplyr %>%
 #' @return Annotation data frame.
+#' @export
 create_annotation_df <- function(
   evidence,
   n_replicates_per_condition = NULL,
