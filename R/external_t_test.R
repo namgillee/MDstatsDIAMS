@@ -70,7 +70,7 @@ compute_mslip_on_stdreport <- function(report) {
         adj.p.value = adj.pvalue,
         estimate = log2FC
       ) %>%
-      select(-c(FULL_PEPTIDE))
+      dplyr::select(-c(FULL_PEPTIDE))
 
     lip_model$experiment <- exp_level
 
@@ -115,7 +115,7 @@ compute_rots_on_stdreport <- function(report) {
         )
     } else {
       report <- report %>%
-        mutate(log10_precursor_quantity = log10(.data$precursor_quantity))
+        dplyr::mutate(log10_precursor_quantity = log10(.data$precursor_quantity))
     }
   }
 
