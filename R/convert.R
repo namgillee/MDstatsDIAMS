@@ -33,7 +33,7 @@ convert_sn_to_standard <- function(sn_report, filter_identified = TRUE) {
     )
 
   # Rename columns
-  condition_labels <- unique(sn_report$R.Condition)
+  condition_labels <- sort(unique(sn_report$R.Condition))
   if ("DMSO" %in% condition_labels) {
     condition_labels <- c("DMSO", condition_labels[condition_labels != "DMSO"])
   }
@@ -80,7 +80,7 @@ convert_ms_to_standard <- function(ms_report) {
     !is.na(ms_report$Intensity) & ms_report$Intensity > 1, ]
 
   # Rename columns
-  condition_labels <- unique(ms_report$Condition)
+  condition_labels <- sort(unique(ms_report$Condition))
   if ("DMSO" %in% condition_labels) {
     condition_labels <- c("DMSO", condition_labels[condition_labels != "DMSO"])
   }
@@ -168,7 +168,7 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
                     Condition, .keep_all = TRUE)
 
   # Rename columns
-  condition_labels <- unique(annotation$Condition)
+  condition_labels <- sort(unique(annotation$Condition))
   if ("DMSO" %in% condition_labels) {
     condition_labels <- c("DMSO", condition_labels[condition_labels != "DMSO"])
   }
@@ -220,7 +220,7 @@ convert_sk_to_standard <- function(sk_report, annotation) {
   sk_report <- merge(sk_report, annotation, by = "Replicate", all.x = TRUE)
 
   # Rename columns
-  condition_labels <- unique(sk_report$Condition)
+  condition_labels <- sort(unique(sk_report$Condition))
   if ("DMSO" %in% condition_labels) {
     condition_labels <- c("DMSO", condition_labels[condition_labels != "DMSO"])
   }

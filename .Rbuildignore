@@ -4,5 +4,6 @@
 
 data*
 backups*
+vignettes*
 vignettes/*.html
 vignettes/*.pdf
