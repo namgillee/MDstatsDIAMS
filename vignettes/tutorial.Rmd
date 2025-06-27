@@ -32,13 +32,11 @@ standard report format. Here are some examples.
 
 A **Spectronaut** report can be converted into standard format directly.
 
-```{r sn_to_standard, eval=FALSE}
-sn_report <- arrow::read_parquet(
-  paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/",
-         "data/lip_quant_staurosporine_hela_sn_report.parquet")
-)
+```{r sn_to_standard, eval=TRUE}
+sn_report <- read.delim(paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/",
+                               "data/sample_spectronaut_report.tsv"))
 
-standard_report <- convert_sn_to_standard(sn_report) 
+standard_report <- convert_sn_to_standard(sn_report)
 ```
 
 
@@ -47,7 +45,7 @@ standard_report <- convert_sn_to_standard(sn_report)
 **MaxQuant** report consists `evidence.txt`, `msms.txt`, and `proteinGroups.txt`
 files. A **MaxQuant** report can be converted a standard report as follows.
 
-```{r mq_paths, eval=TRUE}
+```{r mq_paths, eval=FALSE}
 ## Load MaxQuant evidence.txt and msms.txt files
 mq_root <- paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/",
                   "data/lip_quant_staurosporine_hela_mq_report_4conds/")
@@ -103,11 +101,12 @@ The `run_ttests()` will run statistical methods specified by `method_names =`
 for comparing a base condition (e.g., "DMSO") with all the other conditions. If
 `method_names = NULL` (default), all the available methods will be run.
 
-```{r run_ttests, eval=FALSE}
+```{r run_ttests, warning=FALSE}
 ## Select a subset of proteins to reduce time cost
-n_proteins <- 100
+proteins <- unique(standard_report$protein_id)
+n_sampled_proteins <- min(100, length(proteins))
 set.seed(1111)
-sampled <- sample(unique(standard_report$protein_id), n_proteins)
+sampled <- sample(proteins, n_sampled_proteins)
 
 sample_report <- standard_report[standard_report$protein_id %in% sampled, ]
 
@@ -123,7 +122,7 @@ The test results obtained by `run_ttests()` have `p.value` column in each
 table for every comparisons. The **MDstatsDIAMS** can compute local false
 discovery rate (lfdr) score and append it into the table as `lfdr` column.
 
-```{r compute_lfdr, eval=FALSE}
+```{r compute_lfdr, warning=FALSE}
 lfdr_results <- compute_lfdr_result(test_results)
 ```
 
@@ -133,9 +132,10 @@ lfdr_results <- compute_lfdr_result(test_results)
 The **MDstatsDIAMS** can compute the numbers of precursors
 that were found significant between two conditions by the table row
 `Rejected = TRUE`. The `p.value` or an alternative significance score such
-as `lfdr` can be supplied for determining 
+as `lfdr` can be supplied for determining the numbers of precursors with 
+significant changes in mean log-quantity.
 
-```{r print_contingency, eval=FALSE}
+```{r print_contingency, eval=TRUE}
 tables <- compute_contingency_tables(
   lfdr_results, alpha = 0.05, q_value_column = 'lfdr'
 )
@@ -143,32 +143,41 @@ tables <- compute_contingency_tables(
 print(tables)
 ```
 
-The **MDstatsMDIAMS** can draw line plots for the numbers of precursors
-with significant changes across comparisons for every statistical methods. By
-`rejected = TRUE`, it draws numbers of insignificant precursors.
 
-```{r plot_line, eval=FALSE}
-line_plot_contingency_tables(
-  x = c(10, 100, 100000), tables = tables, rejected = TRUE,
-  xlab = "DMSO vs Drug (nM)",
-  scale_factor = 1, log = "x",
-  ylab = "Number of significant peptides", ylim = c(0, 150),
-  cex.lab = 1.2, cex = 2, lwd = 2.3,
-  add_legend = TRUE, legend_coord = "topleft", legend_cex = 1.2
-)
-```
+The **MDstatsMDIAMS** can draw bar plots for the numbers of precursors
+with significant changes across comparisons at a given significance level.
+With `rejected = TRUE`, it draws numbers of insignificant precursors.
 
-The **MDstatsMDIAMS** can draw bar plots, alternatively.
+```{r plot_bar, eval=TRUE}
+n_tables <- length(tables)
+ordered <- if(n_tables == 3) 1:3 else c(3, 7, 5, 2, 6, 4, 1)
 
-```{r plot_bar, eval=FALSE}
 bar_plot_contingency_tables(
-  tables = tables, rejected = TRUE, scale_factor = 1,
-  ylab = "Number of significant precursors",
-  ylim = c(0, 150),
+  tables = tables[ordered], rejected = TRUE, scale_factor = 1,
+  ylab = "Number of significant peptides",
+  ylim = c(0, n_sampled_proteins * 10),
   xlab = "DMSO vs Drug (nM)",
   cex.lab = 1.2,
   add_legend = TRUE,
   legend_ncol = 3,
   legend_cex = 1.2
+)
+```
+
+The **MDstatsMDIAMS** can draw line plots for the numbers of precursors
+with significant changes across comparisons for every statistical methods. By
+`rejected = TRUE`, it draws numbers of insignificant precursors.
+
+```{r plot_line, eval=TRUE}
+n_tables <- length(tables)
+x <- if(n_tables == 3) c(10, 100, 100000) else 10^c(5, 2, -1, 4, 1, 3, 0)
+
+line_plot_contingency_tables(
+  x = x, tables = tables, rejected = TRUE,
+  xlab = "DMSO vs Drug (nM)",
+  scale_factor = 1, log = "x",
+  ylab = "Number of significant peptides", ylim = c(0, n_sampled_proteins * 10),
+  cex.lab = 1.2, cex = 2, lwd = 2.3,
+  add_legend = TRUE, legend_coord = "topleft", legend_cex = 1.2
 )
 ```

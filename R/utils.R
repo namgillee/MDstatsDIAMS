@@ -148,7 +148,7 @@ run_ttests <- function(
     message(paste(c("Running the test methods:", method_names), collapse = " "))
 
   # Set base_condition
-  conditions <- unique(report$condition)
+  conditions <- levels(factor(report$condition))
 
   if (is.null(base_condition)) {
     base_condition <- conditions[1]
