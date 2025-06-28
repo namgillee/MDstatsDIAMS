@@ -125,14 +125,14 @@ convert_ms_to_standard <- function(ms_report) {
 convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
 
   # Choose columns
-  evidence <- evidence %>% select(Modified.sequence, Proteins, Raw.file,
+  evidence <- evidence %>% dplyr::select(Modified.sequence, Proteins, Raw.file,
                                   Experiment, Charge, Q.value, Intensity, id)
 
   # Filter by q-value
-  evidence <- evidence %>% filter(Q.value <= 0.01)
+  evidence <- evidence %>% dplyr::filter(Q.value <= 0.01)
 
   # Remove decoy
-  evidence <- evidence %>% filter(substr(Proteins, 1, 3) != "CON")
+  evidence <- evidence %>% dplyr::filter(substr(Proteins, 1, 3) != "CON")
 
   # Expand msms to fragment ion level.
   matches <- strsplit(msms$Matches, ";")
@@ -153,13 +153,13 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
   )
 
   # Select top-3 fragment ions for each precursor
-  msms <- msms %>% filter(id_top3)
+  msms <- msms %>% dplyr::filter(id_top3)
 
   # Append Matches and Intensities columns
-  evidence <- evidence %>% left_join(msms, by = "id")
+  evidence <- evidence %>% dplyr::left_join(msms, by = "id")
 
   # Append Raw.file, Condition, BioReplicate, IsotopeLabelType
-  evidence <- evidence %>% left_join(annotation, by = "Raw.file")
+  evidence <- evidence %>% dplyr::left_join(annotation, by = "Raw.file")
 
   # Choose unique rows with the smallest Q.value
   evidence <- evidence %>%
@@ -214,8 +214,9 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
 convert_sk_to_standard <- function(sk_report, annotation) {
 
   sk_report$Area <- as.numeric(sk_report$Area)
-  sk_report <- sk_report[
-    !is.na(sk_report$Area) & sk_report$Area > 1, ]
+  sk_report <- sk_report %>% dplyr::filter(
+    !is.na(Area) & Area > 1 & substr(Protein, 1, 5) != "Decoy"
+  )
 
   # Append Condition, Run
   sk_report <- merge(sk_report, annotation, by = "Replicate", all.x = TRUE)
