@@ -230,17 +230,19 @@ convert_sk_to_standard <- function(sk_report, annotation) {
   sk_report <- sk_report %>%
     dplyr::mutate(
       condition = factor(.data$Condition, labels = condition_labels),
-      experiment = "EXP"
+      experiment = "EXP",
+      precursor_id = paste0(Peptide, ".", Precursor.Charge),
+      fragment_id = paste0(Fragment.Ion, ".", Product.Charge),
     ) %>%
     dplyr::rename(
       replicate = Replicate,
       protein_id = Protein,
-      precursor_id = Peptide,
-      fragment_id = Fragment.Ion,
       fragment_peak_area = Area
     ) %>%
     dplyr::select(
-      -c(Run, Condition)
+      -c(
+        Run, Condition, Peptide, Precursor.Charge, Fragment.Ion, Product.Charge
+      )
     )
 
   # Update replicate
