@@ -121,11 +121,11 @@ run_ttests <- function(
 ) {
   # List of available methods
   method_name_func <- list(
+    msstatslip = compute_mslip_on_stdreport,
+    rots = compute_rots_on_stdreport,
     paired = compute_paired_on_stdreport,
     independent = compute_indep_on_stdreport,
-    shrinkage = compute_shrink_on_stdreport,
-    msstatslip = compute_mslip_on_stdreport,
-    rots = compute_rots_on_stdreport
+    shrinkage = compute_shrink_on_stdreport
   )
 
   # Set method names
