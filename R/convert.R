@@ -125,8 +125,9 @@ convert_ms_to_standard <- function(ms_report) {
 convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
 
   # Choose columns
-  evidence <- evidence %>% dplyr::select(Modified.sequence, Proteins, Raw.file,
-                                  Experiment, Charge, Q.value, Intensity, id)
+  evidence <- evidence %>%
+    dplyr::select(Modified.sequence, Proteins, Raw.file, Experiment, Charge,
+                  Q.value, Intensity, id)
 
   # Filter by q-value
   evidence <- evidence %>% dplyr::filter(Q.value <= 0.01)
