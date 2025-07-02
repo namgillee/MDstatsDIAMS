@@ -50,11 +50,10 @@ convert_sn_to_standard <- function(sn_report, filter_identified = TRUE) {
     dplyr::rename(
       replicate = .data$R.Replicate,
       protein_id = .data$PG.ProteinGroups,
-      precursor_qvalue = .data$EG.Qvalue,
       fragment_peak_area = .data$F.NormalizedPeakArea
     ) %>%
     dplyr::select(
-      -c(R.Condition, EG.ModifiedSequence, FG.Charge,
+      -c(R.Condition, EG.ModifiedSequence, EG.Qvalue, FG.Charge,
          F.FrgIon, F.FrgLossType, F.Charge)
     )
 
@@ -256,7 +255,8 @@ convert_sk_to_standard <- function(sk_report, annotation) {
 
 #' Convert standard report into MSstatsLiP format
 #'
-#' No preprocessing is carried out, but column names are changed.
+#' Column names are changed, and input report is preprocessed in the same way as
+#' MSstatsLiP converter.
 #' @param report A standard report. Required columns are condition, replicate,
 #'   experiment, protein_id, precursor_id, fragment_id, fragment_peak_area.
 #' @param drop_experiment If TRUE, `experiment` column is removed from output.
@@ -280,7 +280,7 @@ convert_standard_to_mslip <- function(report, drop_experiment = FALSE) {
     IsotopeLabelType = "L"
   )
 
-  # precursor, fragment ion
+  # Columns for precursor, fragment ion
   split_precursor_id <- strsplit(report$precursor_id, "[.]")
   report[["PeptideSequence"]] <- sapply(split_precursor_id, function(s) s[1])
   report[["PrecursorCharge"]] <- sapply(
@@ -293,7 +293,7 @@ convert_standard_to_mslip <- function(report, drop_experiment = FALSE) {
     split_fragment_id, function(s) as.numeric(s[2])
   )
 
-  # condition, experiment
+  # Columns for protein, condition
   report <- report %>%
     dplyr::rename(
       ProteinName = .data$protein_id,
@@ -312,7 +312,24 @@ convert_standard_to_mslip <- function(report, drop_experiment = FALSE) {
       dplyr::select(-c(replicate, precursor_id, fragment_id))
   }
 
-  return(report)
+  # Preprocessing 1: Remove shared peptides: prot_count_per_pep == 1
+  prot_count_per_pep <- report %>%
+    dplyr::group_by(PeptideSequence) %>%
+    dplyr::mutate(count = dplyr::n_distinct(ProteinName)) %>%
+    dplyr::pull(count)
+
+  # Preprocessing 2: Remove features with less than 3 measurements across runs:
+  # min_run_count_per_feat >= 3
+  min_run_count_per_feat <- report %>%
+    dplyr::group_by(Condition, ProteinName, PeptideSequence, PrecursorCharge,
+                    FragmentIon, ProductCharge) %>%
+    dplyr::mutate(run_count = length(ProductCharge)) %>%
+    dplyr::group_by(ProteinName, PeptideSequence, PrecursorCharge,
+                    FragmentIon, ProductCharge) %>%
+    dplyr::mutate(min_run_count = min(run_count)) %>%
+    dplyr::pull(min_run_count)
+
+  return(report[(prot_count_per_pep == 1) & (min_run_count_per_feat >= 3),])
 }
 
 
