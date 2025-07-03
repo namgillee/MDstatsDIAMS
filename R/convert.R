@@ -132,7 +132,9 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
   evidence <- evidence %>% dplyr::filter(Q.value <= 0.01)
 
   # Remove decoy
-  evidence <- evidence %>% dplyr::filter(substr(Proteins, 1, 3) != "CON")
+  is_decoy <- base::sapply(base::strsplit(evidence$Proteins, ";"),
+                           function(tokn) {any(substr(tokn, 1, 3) == "CON")})
+  evidence <- evidence %>% dplyr::filter(!is_decoy)
 
   # Expand msms to fragment ion level.
   matches <- strsplit(msms$Matches, ";")
@@ -183,12 +185,11 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
     dplyr::rename(
       replicate = BioReplicate,
       protein_id = Proteins,
-      fragment_id = Matches,
-      precursor_quantity = Intensity
+      fragment_id = Matches
     ) %>%
     dplyr::select(
       -c(Raw.file, Condition, Modified.sequence, Charge, Experiment, Q.value,
-         id, IsotopeLabelType, id_top3, Intensities)
+         Intensity, id, IsotopeLabelType, id_top3, Intensities)
     )
 
   # Update replicate
