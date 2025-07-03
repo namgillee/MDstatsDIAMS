@@ -19,5 +19,6 @@ PrecursorCharge, FragmentIon, ProductCharge, Condition, BioReplicate, Run,
 Intensity, FULL_PEPTIDE
 }
 \description{
-No preprocessing is carried out, but column names are changed.
+Column names are changed, and input report is preprocessed in the same way as
+MSstatsLiP converter.
 }
