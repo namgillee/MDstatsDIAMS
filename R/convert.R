@@ -242,7 +242,8 @@ convert_sk_to_standard <- function(sk_report, annotation) {
     ) %>%
     dplyr::select(
       -c(
-        Run, Condition, Peptide, Precursor.Charge, Fragment.Ion, Product.Charge
+        Run, Condition, Peptide, Precursor.Charge, Fragment.Ion, Product.Charge,
+        Precursor.Mz, Product.Mz, Retention.Time, Background, Peak.Rank
       )
     )
 
