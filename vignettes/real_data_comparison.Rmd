@@ -33,7 +33,7 @@ input_report_format <- "sn"
 
 # result_save_folder:
 #   Path to the folder to save ttest results.
-result_save_folder <- "/Users/namgil/Documents/Projects/MDstatsDIAMS/data/"
+result_save_folder <- "/Users/namgil/Documents/Projects/MDstatsDIAMS/vignettes/"
 
 # remove_intermediate_reports:
 #   If TRUE, remove report from environment if not used in further steps.
