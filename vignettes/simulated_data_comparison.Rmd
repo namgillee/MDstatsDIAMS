@@ -21,30 +21,31 @@ Simulated data sets are generated using various parameters, including mean diffe
 
 ```{r set_parameters}
 # BETA_SUM:
-#   **Choose one from: c(Inf, 100, 30, 10)**
+#   **Choose one from c(100, 30, 10) for publication**
 #   Beta distribution parameters will be determined at
 #   (alpha, beta) = (BETA_SUM * 0.1 + 1, BETA_SUM * 0.9 + 1).
 #   If Inf, random samples takes constant values of 0.1.
-BETA_SUM <- Inf
+BETA_SUM <- 100
 
 # DIRI_SUM:
-#   **Choose one from: c(Inf, 300, 100, 30, 10)**
+#   **Fixed to 3 for publication**
 #   Dirichlet distribution parameters will be determined at
 #   (alpha1, alpha2, alpha3) = rep(floor(DIRI_SUM / 3) + 1, 3).
 #   If Inf, random samples takes constant values of 1/3.
 DIRI_SUM <- 3
 
 # S1:
-#   **Choose one from: c(0.5, 1.0, 1.5)**
+#   **Fixed to 1.0 for publication**
 #   standard deviation for normal distribution for generating group mean values.
 S1 <- 1.0
 
 # ALL_S2:
-#   vector of standard deviation for normal distribution for noise.
+#   **Include c(0.05, 0.10, 0.80) for publication**
+#   Vector of standard deviation for normal distribution for noise.
 ALL_S2 <- 0.05 * (2 ** (0:4))
 
 # ALL_N_REPLICATES:
-#   vector of numbers of replicates
+#   Vector of numbers of replicates
 ALL_N_REPLICATES <- c(4, 8, 16, 32, 64)
 
 # COR_FRAG:
@@ -57,10 +58,11 @@ COR_FRAG <- 0.89
 #   - "CON1/CON2": no mean difference between two groups
 #   - "CON1/CON3": mean difference is -log10(2)
 #   - "CON1/CON4": mean difference is -2*log10(2)
-COMPARISON <- "CON1/CON4"
+COMPARISON <- "CON1/CON3"
 
 # SAVE_FOLDER:
-SAVE_FOLDER <- "/Users/namgil/Documents/Projects/MDstatsDIAMS/vignettes/"
+SAVE_FOLDER <-
+  "/Users/namgil/Documents/Projects/MDstatsDIAMS/vignettes/simulation/"
 ```
 
 2. Load packages
@@ -72,98 +74,120 @@ library(MDstatsDIAMS)
 3. Run simulation
 
 ```{r run_simulation}
-if (!dir.exists(SAVE_FOLDER)) {
-  message(paste("Creating save folder", SAVE_FOLDER))
-  dir.create(SAVE_FOLDER, recursive = TRUE)
-}
+save_path <- paste0(SAVE_FOLDER,
+                    "sim_nr_resu_", substr(COMPARISON, 6, 9), "_meanstd", S1,
+                    "_betasum", BETA_SUM, "_dr", DIRI_SUM, ".RData")
+if (file.exists(save_path)) {
+  load(save_path)
+} else {
 
-NR_RESU <- vector("list", length(ALL_S2))
+  if (!dir.exists(SAVE_FOLDER)) {
+    message(paste("Creating save folder", SAVE_FOLDER))
+    dir.create(SAVE_FOLDER, recursive = TRUE)
+  }
+  
+  NR_RESU <- vector("list", length(ALL_S2))
+  for (i_s2 in seq_along(ALL_S2)) {
+    s2 <- ALL_S2[i_s2]
+  
+    all_nr_tables <- vector("list", length(ALL_N_REPLICATES))
+    names(all_nr_tables) <- as.character(ALL_N_REPLICATES)
+    for (nr in ALL_N_REPLICATES) {
+  
+      # Set parameters
+      params <- default_params
+      if (is.infinite(BETA_SUM)) {
+        params$acquisition_beta_fnt <-
+          function(n, shape1, shape2) rep(0.1, n)
+        params$acquisition_beta_shape1 <- -1
+        params$acquisition_beta_shape2 <- -1
+      } else {
+        params$acquisition_beta_fnt <- rbeta
+        params$acquisition_beta_shape1 <- BETA_SUM * 0.1 + 1
+        params$acquisition_beta_shape2 <- BETA_SUM * 0.9 + 1
+      }
+  
+      if (is.infinite(DIRI_SUM)) {
+        params$ionization_dirichlet_fnt <-
+          function(n, alpha) matrix(1 / 3, n, 3)
+        params$ionization_dirichlet_alpha <- c(-1, -1, -1)
+      } else {
+        params$ionization_dirichlet_fnt <- dirmult::rdirichlet
+        params$ionization_dirichlet_alpha <-
+          rep(floor(DIRI_SUM / 3), 3) + 1
+      }
+  
+      params$n_experiment <- 500
+      params$n_condition <- 2  # Changed from 5 to 2
+      i_comp <- as.numeric(substr(COMPARISON, 9, 9))
+      params$prec_mean_condition_shift <-
+        c(0, i_comp - 2) * log10(2)  # length must be equal to n_condition
+      params$n_replicate <- nr
+      params$prec_mean_std <- S1
+      params$noise_std <- s2
+  
+      params$ionization_cor_bet_condition <- COR_FRAG
+  
+      boot_denom_eps <- 0.3
+  
+      # Run analysis
+      tryCatch({
+        report <- simulate_fragment_ion_report(params, seed = 13)
+        report <- compute_cov_unequal_replicates(report)
+        resu <- run_ttests(report, boot_denom_eps = boot_denom_eps)
+  
+      }, error = function(e) {
+        print("Retrying..")
+        report <<- simulate_fragment_ion_report(params, seed = 10)
+        report <- compute_cov_unequal_replicates(report)
+        resu <<- run_ttests(report, boot_denom_eps = boot_denom_eps)
+  
+      })
+      tables <- compute_contingency_tables(resu, alpha = 0.05)
+  
+      ## Note that params set only two conditions; so that there are only one
+      ## comparison in each resulting 'tables' list
+      all_nr_tables[[as.character(nr)]] <- tables[[1]]
+    }
+  
+    NR_RESU[[i_s2]] <- all_nr_tables
+  }
+  
+  save(NR_RESU, file = save_path)
+}
+```
+
+Save plots.
+
+```{r plots}
 for (i_s2 in seq_along(ALL_S2)) {
   s2 <- ALL_S2[i_s2]
 
-  all_nr_tables <- vector("list", length(ALL_N_REPLICATES))
-  names(all_nr_tables) <- as.character(ALL_N_REPLICATES)
-  for (nr in ALL_N_REPLICATES) {
+  if (COMPARISON == "CON1/CON2") {
+    pdf(paste0(SAVE_FOLDER, "sim_plot_", substr(COMPARISON, 6, 9),
+               "_meanstd", S1, "_betasum", BETA_SUM, "_",
+               "bar_", "dr", DIRI_SUM, "s2", s2, ".pdf"))
+    par(mar = c(5.1, 4.6, 4.1, 2.1))
+    bar_plot_contingency_tables(
+      NR_RESU[[i_s2]], scale_factor = 1 / 500,
+      ylab = "Specificity", ylim = c(0, 1),
+      xlab = "Number of replicates", cex.lab = 1.7,
+      add_legend = TRUE, legend_ncol = 3, legend_cex = 1.5
+    )
+    dev.off()
 
-    # Set parameters
-    params <- default_params
-    if (is.infinite(BETA_SUM)) {
-      params$acquisition_beta_fnt <-
-        function(n, shape1, shape2) rep(0.1, n)
-      params$acquisition_beta_shape1 <- -1
-      params$acquisition_beta_shape2 <- -1
-    } else {
-      params$acquisition_beta_fnt <- rbeta
-      params$acquisition_beta_shape1 <- BETA_SUM * 0.1 + 1
-      params$acquisition_beta_shape2 <- BETA_SUM * 0.9 + 1
-    }
-
-    if (is.infinite(DIRI_SUM)) {
-      params$ionization_dirichlet_fnt <-
-        function(n, alpha) matrix(1 / 3, n, 3)
-      params$ionization_dirichlet_alpha <- c(-1, -1, -1)
-    } else {
-      params$ionization_dirichlet_fnt <- dirmult::rdirichlet
-      params$ionization_dirichlet_alpha <-
-        rep(floor(DIRI_SUM / 3), 3) + 1
-    }
-
-    params$n_experiment <- 500
-    params$n_condition <- 2  # Changed from 5 to 2
-    i_comp <- as.numeric(substr(COMPARISON, 9, 9))
-    params$prec_mean_condition_shift <-
-      c(0, i_comp - 2) * log10(2)  # length must be equal to n_condition
-    params$n_replicate <- nr
-    params$prec_mean_std <- S1
-    params$noise_std <- s2
-
-    params$ionization_cor_bet_condition <- COR_FRAG
-
-    boot_denom_eps <- 0.3
-
-    # Run analysis
-    tryCatch({
-      report <- simulate_fragment_ion_report(params, seed = 13)
-      report <- compute_cov_unequal_replicates(report)
-      resu <- run_ttests(report, boot_denom_eps = boot_denom_eps)
-
-    }, error = function(e) {
-      print("Retrying..")
-      report <<- simulate_fragment_ion_report(params, seed = 10)
-      report <- compute_cov_unequal_replicates(report)
-      resu <<- run_ttests(report, boot_denom_eps = boot_denom_eps)
-
-    })
-    tables <- compute_contingency_tables(resu, alpha = 0.05)
-
-    ## Note that params set only two conditions; so that there are only one
-    ## comparison in each resulting 'tables' list
-    all_nr_tables[[as.character(nr)]] <- tables[[1]]
+  } else {
+    pdf(paste0(SAVE_FOLDER, "sim_plot_", substr(COMPARISON, 6, 9),
+               "_meanstd", S1, "_betasum", BETA_SUM, "_",
+               "line_", "dr", DIRI_SUM, "s2", s2, ".pdf"))
+    par(mar = c(5.1, 4.6, 4.1, 2.1))
+    line_plot_contingency_tables(
+      ALL_N_REPLICATES, NR_RESU[[i_s2]], scale_factor = 1 / 500, log = "x",
+      ylab = "Sensitivity", ylim = c(0, 1),
+      xlab = "Number of replicates", cex.lab = 1.7, cex = 2, lwd = 2.3,
+      add_legend = TRUE, legend_coord = "bottomleft", legend_cex = 1.5
+    )
+    dev.off()
   }
-
-  NR_RESU[[i_s2]] <- all_nr_tables
-
-
-  ## Plots ##
-  pdf(paste0(SAVE_FOLDER, 
-             substr(COMPARISON, 6, 9),
-             "_meanstd", S1, "_betasum", BETA_SUM, "_",
-             "plot_line_", substr(COMPARISON, 6, 9), "_",
-             "bt", BETA_SUM, "dr", DIRI_SUM, "S1", S1, "s2", s2,
-             ".pdf"))
-  par(mar = c(5.1, 4.6, 4.1, 2.1))
-  line_plot_contingency_tables(
-    ALL_N_REPLICATES, all_nr_tables, scale_factor = 1 / 500, log = "x",
-    ylab = "Sensitivity", ylim = c(0, 1),
-    xlab = "Number of replicates", cex.lab = 1.7, cex = 2, lwd = 2.3,
-    add_legend = TRUE, legend_coord = "bottomleft", legend_cex = 1.5)
-  dev.off()
 }
-
-save(
-  NR_RESU,
-  file = paste0(SAVE_FOLDER,
-                "nr_resu_", substr(COMPARISON, 6, 9), "_meanstd", S1,
-                "_betasum", BETA_SUM, ".RData")
-)
 ```
