@@ -62,9 +62,11 @@ se_diff_shrink <- function(
   )
 
   # Extract sub-matrices: A1, A2, B
-  cov_con1 <- covmat[1:num_ions, 1:num_ions]
-  cov_con2 <- covmat[(num_ions + 1):ncol(covmat), (num_ions + 1):ncol(covmat)]
-  cov_unequal_conditions <- covmat[1:num_ions, (num_ions + 1):ncol(covmat)]
+  cov_con1 <- covmat[1:num_ions, 1:num_ions, drop = FALSE]
+  cov_con2 <- covmat[(num_ions + 1):ncol(covmat), (num_ions + 1):ncol(covmat),
+                     drop = FALSE]
+  cov_unequal_conditions <- covmat[1:num_ions, (num_ions + 1):ncol(covmat),
+                                   drop = FALSE]
 
   if (cov_equal) {
     cov_pooled <- (cov_con1 + cov_con2) / 2
@@ -278,7 +280,7 @@ compute_shrink_on_group <- function(
 
   cov_unequal_replicates <- 0
   if (!is.null(cov_unequal_replicates_column) &&
-      !is.null(groupdf[[cov_unequal_replicates_column]])) {
+        !is.null(groupdf[[cov_unequal_replicates_column]])) {
     cov_unequal_replicates <- groupdf[[cov_unequal_replicates_column]][
       !is.na(groupdf[[cov_unequal_replicates_column]])
     ][1]
@@ -322,7 +324,7 @@ compute_shrink_on_stdreport <- function(
 ) {
   report[["log10_fragment_peak_area"]] <- log10(report[["fragment_peak_area"]])
   if (!is.null(cov_unequal_replicates_column) &&
-      is.null(report[[cov_unequal_replicates_column]])) {
+        is.null(report[[cov_unequal_replicates_column]])) {
     warning(
       paste(
         "The",
