@@ -58,7 +58,7 @@ COR_FRAG <- 0.89
 #   - "CON1/CON2": no mean difference between two groups
 #   - "CON1/CON3": mean difference is -log10(2)
 #   - "CON1/CON4": mean difference is -2*log10(2)
-COMPARISON <- "CON1/CON3"
+COMPARISON <- "CON1/CON2"
 
 # SAVE_FOLDER:
 SAVE_FOLDER <-
@@ -157,6 +157,21 @@ if (file.exists(save_path)) {
 }
 ```
 
+For plotting accuracy, load results under "CON1/CON2":
+
+```{r load_null_resu}
+if (COMPARISON != "CON1/CON2") {
+  NR_RESU_ALT <- NR_RESU  # Backup: results under alternative hypothesis
+  
+  save_path_null <- paste0(SAVE_FOLDER, "sim_nr_resu_", "CON2", "_meanstd", S1,
+                           "_betasum", BETA_SUM, "_dr", DIRI_SUM, ".RData")
+  if (file.exists(save_path_null)) {
+    load(save_path_null)
+    NR_RESU_NULL <- NR_RESU  # Results under null hypothesis: CON1/CON2
+  }
+}
+```
+
 Save plots.
 
 ```{r plots}
@@ -164,6 +179,7 @@ for (i_s2 in seq_along(ALL_S2)) {
   s2 <- ALL_S2[i_s2]
 
   if (COMPARISON == "CON1/CON2") {
+    # Specificity bar plot
     pdf(paste0(SAVE_FOLDER, "sim_plot_", substr(COMPARISON, 6, 9),
                "_meanstd", S1, "_betasum", BETA_SUM, "_",
                "bar_", "dr", DIRI_SUM, "s2", s2, ".pdf"))
@@ -177,17 +193,47 @@ for (i_s2 in seq_along(ALL_S2)) {
     dev.off()
 
   } else {
+    # Sensitivity line plot
     pdf(paste0(SAVE_FOLDER, "sim_plot_", substr(COMPARISON, 6, 9),
                "_meanstd", S1, "_betasum", BETA_SUM, "_",
                "line_", "dr", DIRI_SUM, "s2", s2, ".pdf"))
     par(mar = c(5.1, 4.6, 4.1, 2.1))
     line_plot_contingency_tables(
-      ALL_N_REPLICATES, NR_RESU[[i_s2]], scale_factor = 1 / 500, log = "x",
+      ALL_N_REPLICATES, NR_RESU_ALT[[i_s2]], scale_factor = 1 / 500, log = "x",
       ylab = "Sensitivity", ylim = c(0, 1),
       xlab = "Number of replicates", cex.lab = 1.7, cex = 2, lwd = 2.3,
-      add_legend = TRUE, legend_coord = "bottomleft", legend_cex = 1.5
+      add_legend = TRUE, legend_coord = "right", legend_cex = 1.5
     )
     dev.off()
+
+    # Accuracy line plot
+    if (file.exists(save_path_null)) {  
+      collected_scores <- vector("list", length(ALL_N_REPLICATES))
+      names(collected_scores) <- as.character(ALL_N_REPLICATES)
+      for (i_nr in 1 : length(ALL_N_REPLICATES)) {
+        id_nr = as.character(ALL_N_REPLICATES[i_nr])
+        
+        d0 <- NR_RESU_NULL[[i_s2]][[id_nr]]
+        d <- NR_RESU_ALT[[i_s2]][[id_nr]]
+        rec <- d[, -1] / 500
+        accu <- (rec * 0.05 + d0[c(2, 1), -1] / 500 * 0.95)
+        d[, -1] <- accu
+        
+        collected_scores[[id_nr]] <- d
+      }
+      pdf(paste0(SAVE_FOLDER, "sim_accuracy_plot_", substr(COMPARISON, 6, 9),
+                 "_meanstd", S1, "_betasum", BETA_SUM, "_",
+                 "line_", "dr", DIRI_SUM, "s2", s2, ".pdf"))
+      par(mar = c(5.1, 4.6, 4.1, 2.1))
+      line_plot_contingency_tables(
+        ALL_N_REPLICATES, collected_scores, scale_factor = 1,
+        log = "x", ylab = "Accuracy", ylim = c(0, 1),
+        xlab = "Number of replicates",
+        cex.lab = 1.7, cex = 2, lwd = 2.3,
+        add_legend = TRUE, legend_coord = "right", legend_cex = 1.5
+      )
+      dev.off()
+    }
   }
 }
 ```
