@@ -1,9 +1,13 @@
 ---
-title: "MDstatsDIAMS: Real Data Exploration Using Spectronaut Report"
-author: 
-  - Namgil Lee^[Kangwon National University, and Bionsight Inc., namgil.lee@kangwon.ac.kr], Hojin Yoo^[Bionsight Inc.], Juhyoung Kim^[Kangwon National University], Heejung Yang^[Kangwon National University, and Bionsight Inc., heejyang@kangwon.ac.kr]
+title: 'MDstatsDIAMS: Real Data Exploration Using Spectronaut Report'
+author: Namgil Lee^[Kangwon National University, and Bionsight Inc., namgil.lee@kangwon.ac.kr],
+  Hojin Yoo^[Bionsight Inc.], Juhyoung Kim^[Kangwon National University], Heejung
+  Yang^[Kangwon National University, and Bionsight Inc., heejyang@kangwon.ac.kr]
 date: "June 14, 2025"
 output:
+  pdf_document:
+    toc: true
+    toc_depth: '3'
   html_document:
     toc: true
     toc_float: true
@@ -46,7 +50,7 @@ Load a Spectronaut report from a remote repository.
 ```{r read_report}
 df_real <- arrow::read_parquet(
   paste0(
-    "https://zenodo.org/records/15653980/files/",
+    "/Users/namgil/Documents/Projects/MDstatsDIAMS/data/",
     "lip_quant_staurosporine_hela_sn_report.parquet"
   )
 )
