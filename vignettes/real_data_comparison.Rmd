@@ -45,14 +45,23 @@ remove_intermediate_reports <- TRUE
 #   Comparison between control and treatment. Select conditions
 #   from {"DMSO", "10nM", "100nM", "100mM"} if Spectronaut;
 #   from {"CON1", "CON4", "CON5", "CON8"} if MaxQuant or Skyline
-control_condition <- "DMSO"
-treat_condition <- "100mM"
+if (input_report_format == "sn") {
+  control_condition <- "DMSO"
+  treat_condition <- "100mM"
+} else {
+  control_condition <- "CON1"
+  treat_condition <- "CON8"
+}
 
 # subconditions:
 #   List of four conditions for additional pairwise comparisons.
 #   Set {"DMSO", "10nM", "100nM", "100mM"} if Spectronaut;
 #   {"CON1", "CON4", "CON5", "CON8"} if MaxQuant or Skyline
-subconditions <- c("DMSO", "10nM", "100nM", "100mM")
+if (input_report_format == "sn") {
+  subconditions <- c("DMSO", "10nM", "100nM", "100mM")
+} else {
+  subconditions <- c("CON1", "CON4", "CON5", "CON8")
+}
 ```
 
 2. Load packages
@@ -89,7 +98,7 @@ if (input_report_format == "sn") {
   ## Load Spectronaut report
   df_real <- arrow::read_parquet(
     paste0(
-      "https://zenodo.org/records/15653980/files/",
+      "/Users/namgil/Documents/Projects/MDstatsDIAMS/data/",
       "lip_quant_staurosporine_hela_sn_report.parquet"
     )
   )
