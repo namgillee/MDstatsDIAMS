@@ -83,6 +83,12 @@ known_target_df <- read.csv(
     "known_target_list_staurosporine_davis2011.csv"
   )
 )
+
+if (input_report_format == "sk") {
+  protein_column = "ProteinName"
+} else {
+  protein_column = "UniprotID"
+}
 ```
 
 4. Load report data 
@@ -222,7 +228,8 @@ if (file.exists(save_path)) {
 lfdr_result <- compute_lfdr_result(
   ttest_result,
   known_target_df = known_target_df,
-  is_target_column = "is_target"
+  is_target_column = "is_target",
+  protein_column = protein_column
 )
 ```
 
@@ -356,7 +363,7 @@ for (method in names(protein_df_agg)) {
 # Append on-target information
 for (method in names(protein_df_agg)) {
   protein_df_agg[[method]]$is_target <- (
-    protein_df_agg[[method]]$protein_id %in% known_target_df$UniprotID
+    protein_df_agg[[method]]$protein_id %in% known_target_df[[protein_column]]
   )
 
   roc_prot <- pROC::roc(
