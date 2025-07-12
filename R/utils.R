@@ -261,6 +261,7 @@ compute_contingency_tables <- function(
 #' @param add_legend If not FALSE, legend is added in the plot
 #' @param legend_coord coordinate of the legend
 #' @param legend_cex cex for the legend
+#' @param ... Additional arguments to graphics::matplot
 #' @examples
 #'   report <- simulate_fragment_ion_report(default_params)
 #'   resu <- run_ttests(report, boot_denom_eps = 0.3)
@@ -322,7 +323,7 @@ line_plot_contingency_tables <- function(
 #'   tables <- compute_contingency_tables(resu, alpha = 0.05)
 #'   bar_plot_contingency_tables(
 #'     tables[1], xlab = "Comparison", ylab = "1 - Type I error rate",
-#'     cex.lab = 1.5
+#'     cex.lab = 1.5, add_legend = TRUE
 #'   )
 #' @export
 bar_plot_contingency_tables <- function(

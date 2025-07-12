@@ -38,6 +38,6 @@ bar plot for contingency tables
   tables <- compute_contingency_tables(resu, alpha = 0.05)
   bar_plot_contingency_tables(
     tables[1], xlab = "Comparison", ylab = "1 - Type I error rate",
-    cex.lab = 1.5
+    cex.lab = 1.5, add_legend = TRUE
   )
 }

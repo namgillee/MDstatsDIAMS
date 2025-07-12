@@ -28,8 +28,8 @@ cov_diff <- function(dat_con1, dat_con2, verbose = FALSE) {
   for (i in 1:num_frag) {
     for (j in i:num_frag) {
       cov_conall <- c(
-        var(dat_con1[, i], dat_con1[, j], na.rm = TRUE),
-        var(dat_con2[, i], dat_con2[, j], na.rm = TRUE)
+        stats::var(dat_con1[, i], dat_con1[, j], na.rm = TRUE),
+        stats::var(dat_con2[, i], dat_con2[, j], na.rm = TRUE)
       )
       num_conall <- c(
         sum((!is.na(dat_con1[, i])) & (!is.na(dat_con1[, j]))),

@@ -126,7 +126,7 @@ ca_normalize_values_df <- function(
       stats::qnorm(cdf(y))
 
     if (reconstruct) {
-      y_quantiles <- quantile(y, c(0.05, 0.95), na.rm = TRUE)
+      y_quantiles <- stats::quantile(y, c(0.05, 0.95), na.rm = TRUE)
       mn <- mean(y_quantiles)
       std <- diff(y_quantiles) / (stats::qnorm(0.95) - stats::qnorm(0.05))
       values_df[[normalized_value_column]][

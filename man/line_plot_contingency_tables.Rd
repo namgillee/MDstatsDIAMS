@@ -29,6 +29,8 @@ line_plot_contingency_tables(
 \item{legend_coord}{coordinate of the legend}
 
 \item{legend_cex}{cex for the legend}
+
+\item{...}{Additional arguments to graphics::matplot}
 }
 \description{
 Line plot for contingency tables
