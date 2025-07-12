@@ -17,7 +17,11 @@ fit_mixture_normal_expbeta(
 
 \item{init_params}{a vector of initial parameter values}
 
+\item{max_iter}{maximum number of iterations}
+
 \item{index_fixed_params}{index for fixed parameters. A subset of {1,..., 4}}
+
+\item{xlim_max}{an assumed maximum of x range}
 }
 \value{
 a vector of fitted parameters and component weights

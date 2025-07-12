@@ -262,15 +262,6 @@ compute_contingency_tables <- function(
 #' @param legend_coord coordinate of the legend
 #' @param legend_cex cex for the legend
 #' @param ... Additional arguments to graphics::matplot
-#' @examples
-#'   report <- simulate_fragment_ion_report(default_params)
-#'   resu <- run_ttests(report, boot_denom_eps = 0.3)
-#'   tables <- compute_contingency_tables(resu, alpha = 0.05)
-#'   x <- default_params$prec_mean_condition_shift[-c(1, 2)]
-#'   line_plot_contingency_tables(
-#'     x, tables[-1], xlab = expression(delta),
-#'     ylab = "1 - Type II error rate", cex.lab = 1.5
-#'   )
 #' @export
 line_plot_contingency_tables <- function(
   x, tables, rejected = TRUE, scale_factor = 1, add_legend = FALSE,
@@ -317,14 +308,6 @@ line_plot_contingency_tables <- function(
 #' @param legend_ncol ncol for the legend
 #' @param legend_cex cex for the legend
 #' @param ... Additional arguments to barplot()
-#' @examples
-#'   report <- simulate_fragment_ion_report(default_params)
-#'   resu <- run_ttests(report, boot_denom_eps = 0.3)
-#'   tables <- compute_contingency_tables(resu, alpha = 0.05)
-#'   bar_plot_contingency_tables(
-#'     tables[1], xlab = "Comparison", ylab = "1 - Type I error rate",
-#'     cex.lab = 1.5, add_legend = TRUE
-#'   )
 #' @export
 bar_plot_contingency_tables <- function(
   tables, rejected = FALSE, scale_factor = 1, add_legend = FALSE,

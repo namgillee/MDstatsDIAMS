@@ -32,12 +32,3 @@ bar_plot_contingency_tables(
 \description{
 bar plot for contingency tables
 }
-\examples{
-  report <- simulate_fragment_ion_report(default_params)
-  resu <- run_ttests(report, boot_denom_eps = 0.3)
-  tables <- compute_contingency_tables(resu, alpha = 0.05)
-  bar_plot_contingency_tables(
-    tables[1], xlab = "Comparison", ylab = "1 - Type I error rate",
-    cex.lab = 1.5, add_legend = TRUE
-  )
-}

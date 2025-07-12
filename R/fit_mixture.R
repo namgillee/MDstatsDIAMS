@@ -14,7 +14,9 @@ dexpbeta10 <- function(x, shape1 = 1, shape2 = 1) {
 #'
 #' @param x  a vector of data values
 #' @param init_params  a vector of initial parameter values
+#' @param max_iter maximum number of iterations
 #' @param index_fixed_params  index for fixed parameters. A subset of {1,..., 4}
+#' @param xlim_max an assumed maximum of x range
 #' @return  a vector of fitted parameters and component weights
 fit_mixture_normal_expbeta <- function(
   x, init_params, max_iter = 30, index_fixed_params = c(1), xlim_max = NULL
