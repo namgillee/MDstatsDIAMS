@@ -50,11 +50,11 @@ se_diff_shrink <- function(
   }
 
   # Compute covariance matrix
-  # Warnings are suppressed -- The corpcor::cov.shrink() raises a warning when
-  # it detects "any variable with zero scale" in the input data matrix, i.e.,
-  # when any column is constant. Nevertheless, the shrinkage estimation method
-  # still produces valid covariance estimates with finite values, avoiding NA or
-  # NaN entries.
+  # Warnings are suppressed. The function corpcor::cov.shrink() raises a warning
+  # when it detects "any variable with zero scale" in the input data matrix--
+  # that is, when a column is constant. Nevertheless, the shrinkage estimation
+  # method still returns valid covariance estimates with finite values, avoiding
+  # NA or NaN entries.
   suppressWarnings(
     covmat <- corpcor::cov.shrink(
       dat, lambda.var = lambda_var, verbose = verbose
