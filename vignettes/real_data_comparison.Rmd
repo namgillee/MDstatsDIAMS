@@ -1,5 +1,5 @@
 ---
-title: 'MDstatsDIAMS: Real Data Comparison of Methods for Testing Mean Differences'
+title: "MDstatsDIAMS: Real Data Comparison of Methods for Testing Mean Differences"
 author:
   - Namgil Lee^[Kangwon National University, and Bionsight Inc., namgil.lee@kangwon.ac.kr], Hojin Yoo^[Bionsight Inc.], Juhyoung Kim^[Kangwon National University], Heejung Yang^[Kangwon National University, and Bionsight Inc., heejyang@kangwon.ac.kr]
 date: "June 14, 2025"
@@ -11,15 +11,14 @@ output:
     code_folding: show
 ---
 
-This vignette includes numerical comparison of the methods for testing mean differences using real DIA-MS data given in a
-Spectronaut report. This vignette reproduces figures and tables in Section 3.2 Mass Spectrometry Data Analysis of the paper "*A Shrinkage-based Statistical Method for Testing Group Mean Differences in Quantitative Bottom-up Proteomics*" written by the authors.
+This vignette includes numerical comparison of the methods for testing mean differences using real DIA-MS data, which are given in either Spectronaut, MaxQuant, or Skyline report format. This vignette reproduces figures and tables in Section 3.2 Mass Spectrometry Data Analysis of the paper "*A Shrinkage-based Statistical Method for Testing Group Mean Differences in Quantitative Bottom-up Proteomics*" written by the authors.
 
-## Preparation 
+## Preparation
 
 1. Set parameters to reduce analysis time
 
-Because the real data size can be too large, users can choose
-parameters to reduce analysis time in this vignette.
+Because the real data size can be too large for the vignette, users can choose
+parameters to reduce analysis time.
 
 ```{r set_analysis_scale}
 # n_protein:
@@ -27,14 +26,42 @@ parameters to reduce analysis time in this vignette.
 #   If -1 or Inf, include all proteins. Default to 100.
 n_protein <- 100
 
-# remove_intermediate_reports:
-#   If TRUE, remove report from environment if not used in further steps. 
-#   Default to FALSE.
-remove_intermediate_reports <- FALSE
+# input_report_format:
+#   User must choose one of "sn"(Spectronaut), "mq" (MaxQuant), or 
+#   "sk" (Skyline).
+input_report_format <- "sn"
 
 # result_save_folder:
-#   Path to the folder to save ttest results
-result_save_folder <- "/Users/namgil/Documents/Projects/MDstatsDIAMS/data/sn_"
+#   Path to the folder to save ttest results.
+result_save_folder <- "/Users/namgil/Documents/Projects/MDstatsDIAMS/vignettes/"
+
+# remove_intermediate_reports:
+#   If TRUE, remove report from environment if not used in further steps.
+#   Its value does not influence the results.
+#   Default is TRUE.
+remove_intermediate_reports <- TRUE
+
+# control_condition,treat_condition:
+#   Comparison between control and treatment. Select conditions
+#   from {"DMSO", "10nM", "100nM", "100mM"} if Spectronaut;
+#   from {"CON1", "CON4", "CON5", "CON8"} if MaxQuant or Skyline
+if (input_report_format == "sn") {
+  control_condition <- "DMSO"
+  treat_condition <- "100mM"
+} else {
+  control_condition <- "CON1"
+  treat_condition <- "CON8"
+}
+
+# subconditions:
+#   List of four conditions for additional pairwise comparisons.
+#   Set {"DMSO", "10nM", "100nM", "100mM"} if Spectronaut;
+#   {"CON1", "CON4", "CON5", "CON8"} if MaxQuant or Skyline
+if (input_report_format == "sn") {
+  subconditions <- c("DMSO", "10nM", "100nM", "100mM")
+} else {
+  subconditions <- c("CON1", "CON4", "CON5", "CON8")
+}
 ```
 
 2. Load packages
@@ -45,44 +72,84 @@ library(MDstatsDIAMS)
 library(pROC)
 ```
 
-3. Load report data and target list
+3. Load target list
 
-Load a Spectronaut report and an on-target protein list from a remote repository.
+Load an on-target protein list.
 
-```{r read_report}
-df_real <- arrow::read_parquet(
-  paste0(
-    "/Users/namgil/Documents/Projects/MDstatsDIAMS/data/",
-    #"https://zenodo.org/records/15653980/files/",
-    "lip_quant_staurosporine_hela_sn_report.parquet"
-  )
-)
-
+```{r}
 known_target_df <- read.csv(
   paste0(
-    "/Users/namgil/Documents/Projects/MDstatsDIAMS/data/",
-    #"https://zenodo.org/records/15653980/files/",
+    "https://zenodo.org/records/15653980/files/",
     "known_target_list_staurosporine_davis2011.csv"
   )
 )
+
+if (input_report_format == "sk") {
+  protein_column = "ProteinName"
+} else {
+  protein_column = "UniprotID"
+}
 ```
 
-4. Filter the report and convert to standard format
+4. Load report data 
 
-* A Spectronaut report can be converted to the standard format using
-  'convert_sn_to_standard()'.
-* Other DIA report formats, such as FragPipe, MaxQuant, Skyline, can be
-  converted to MSstats format by
-  [MSstatsConvert::MSstatsImport()]
-  (https://rdrr.io/bioc/MSstatsConvert/man/MSstatsImport.html), then,
-  it can be converted into the standard format using
-  'convert_msstats_to_standard()'.
+Load and preprocess report data, and convert it into standard format. Spectronaut, MaxQuant, and Skyline reports can be converted into standard format directly. 
 
-```{r filter_report}
-df_filtered <- convert_sn_to_standard(df_real, filter_identified = TRUE)
+* Reports are filtered by q-value < 0.01, fragment peak area > 1. 
+* Decoy proteins are removed from MaxQuant and Skyline.
+* Top-3 fragment ions are selected in MaxQuant.
+
+```{r read_report}
+if (input_report_format == "sn") {
+  ## Load Spectronaut report
+  df_real <- arrow::read_parquet(
+    paste0(
+      "/Users/namgil/Documents/Projects/MDstatsDIAMS/data/",
+      "lip_quant_staurosporine_hela_sn_report.parquet"
+    )
+  )
+
+  df_filtered <- convert_sn_to_standard(df_real, filter_identified = TRUE)
+
+} else if (input_report_format == "mq") {
+  ## Load MaxQuant report
+  mq_root <- paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/data/",
+                    "lip_quant_staurosporine_hela_mq_report_4conds/")
+
+  mq_evidence_path <- paste0(mq_root, "evidence.txt")
+  mq_msms_path <- paste0(mq_root, "msms.txt")
+
+  df_real <- read.delim(mq_evidence_path)
+  mq_msms <- read.delim(mq_msms_path)
+
+  ##  It is required to generate `annotation.txt' file in prior for **MSstats**.
+  mq_an <- create_annotation_df(
+    evidence = df_real,
+    n_replicates_per_condition = 4
+  )
+  df_filtered <- convert_mq_to_standard(df_real, mq_msms, mq_an)
+
+} else if (input_report_format == "sk") {
+  ## Load Skyline report
+  df_real <- arrow::read_parquet(
+    paste0("/Users/namgil/Documents/Projects/MDstatsDIAMS/data/",
+           "lip_quant_staurosporine_hela_sk_transition_4conds.parquet")
+  )
+
+  # Make an annotation data frame
+  sk_an <- data.frame(
+    Condition = rep(paste0("CON", c(1, 4, 5, 8)), each = 4),
+    Replicate = paste0("StauroDoseResp-", c(1:4, 17:24, 33:36)),
+    Run = paste0("StauroDoseResp-", c(1:4, 17:24, 33:36))
+  )
+
+  df_filtered <- convert_sk_to_standard(df_real, annotation = sk_an)
+}
 
 print(dim(df_filtered))
+
 ```
+
 
 5. Randomly select a subset of the predefined number of proteins to reduce
 analysis time.
@@ -93,11 +160,11 @@ if (
   || is.infinite(n_protein) 
   || n_protein >= n_distinct(df_filtered$protein_id)
 ) {
-  df_subset = df_filtered
+  df_subset <- df_filtered
 } else {
   set.seed(111)
-  protein_subset = sample(unique(df_filtered$protein_id), n_protein)
-  df_subset = df_filtered %>% filter(protein_id %in% protein_subset)
+  protein_subset <- sample(unique(df_filtered$protein_id), n_protein)
+  df_subset <- df_filtered %>% filter(protein_id %in% protein_subset)
 }
 
 print(dim(df_subset))
@@ -114,15 +181,7 @@ if (isTRUE(remove_intermediate_reports)) {
 
 ## Comparison Between Control and Treatment
 
-1. Select two conditions
-
-```{r select_conditions}
-control_condition <- "DMSO"
-treat_condition <- "100mM"
-```
-
-
-2. Run statistical methods for comparing the means between two conditions,
+1. Run statistical methods for comparing the means between two conditions,
 control (DMSO) and treatment (100 uM).
 
 * Select a subset of the report for two conditions, control (DMSO) and treatment
@@ -132,7 +191,7 @@ control (DMSO) and treatment (100 uM).
 df_two_conds <- df_subset %>%
   filter(condition %in% c(control_condition, treat_condition))
 
-print(paste("Comparing mean differences between two conditions:", 
+print(paste("Comparing mean differences between two conditions:",
             control_condition,
             treat_condition))
 ```
@@ -143,6 +202,7 @@ print(paste("Comparing mean differences between two conditions:",
 ## Compute ttest result comparing two conditions ##
 save_path <- paste0(
   result_save_folder,
+  input_report_format, "_",
   "ttest_result_n", n_protein, "_", control_condition, "_", treat_condition,
   ".RData"
 )
@@ -162,25 +222,26 @@ if (file.exists(save_path)) {
 ```
 
 
-3. Append local FDR score and on-target information
+2. Append local FDR score and on-target information
 
 ```{r compute_lfdr}
 lfdr_result <- compute_lfdr_result(
   ttest_result,
   known_target_df = known_target_df,
-  is_target_column = 'is_target'
+  is_target_column = "is_target",
+  protein_column = protein_column
 )
 ```
 
 
-4. Compute sensitivity and specificity from the local fdr results
+3. Compute sensitivity and specificity from the local fdr results
 
 ```{r sensitivity_result}
 protein_sensitivity_result <- compute_sensitivity_result(
   lfdr_result,
-  q_value_column = 'lfdr',
-  is_target_column = 'is_target',
-  group_column = c('experiment' , 'protein_id')
+  q_value_column = "lfdr",
+  is_target_column = "is_target",
+  group_column = c("experiment", "protein_id")
 )
 ```
 
@@ -207,7 +268,7 @@ for (level in spec_levels) {
 print(round(sens_matrix, 2))
 ```
 
-5. Print contingency table at fixed significance level
+4. Print contingency table at fixed significance level
 
 ```{r contingency_table_lfdr, echo=FALSE}
 print("---------- Significance level: 0.10 ----------")
@@ -228,8 +289,6 @@ print(tables01)
 * Aggregate p-values of consecutive comparisons
 
 ```{r aggregate_pvalue, message=FALSE}
-subconditions <- c("DMSO", "10nM", "100nM", "100mM")
-
 protein_df_agg <- list()
 aucs <- c()
 
@@ -242,10 +301,11 @@ for (i in 1:(num_cond - 1)) {
 
   df_two_conds <- df_subset %>%
     filter(condition %in% c(control_condition, treat_condition))
-  
+
   ## Compute ttest result comparing two conditions ##
   save_path <- paste0(
     result_save_folder,
+    input_report_format, "_",
     "ttest_result_n", n_protein, "_", control_condition, "_", treat_condition,
     ".RData"
   )
@@ -303,7 +363,7 @@ for (method in names(protein_df_agg)) {
 # Append on-target information
 for (method in names(protein_df_agg)) {
   protein_df_agg[[method]]$is_target <- (
-    protein_df_agg[[method]]$protein_id %in% known_target_df$UniprotID
+    protein_df_agg[[method]]$protein_id %in% known_target_df[[protein_column]]
   )
 
   roc_prot <- pROC::roc(

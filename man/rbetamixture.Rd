@@ -11,7 +11,7 @@ rbetamixture(n, shape1s = 1, shape2s = 1)
 
 \item{shape1s, shape2s}{vectors of non-negative parameters of component
 beta distributions. Length of each vector is the number of component beta
-distributions, where (shape1s\link{i}, shape2s\link{i}) is the parameter for the
+distributions, where (shape1s(i), shape2s(i)) is the parameter for the
 i-th component beta distribution.}
 }
 \value{

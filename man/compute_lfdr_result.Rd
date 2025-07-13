@@ -7,7 +7,8 @@
 compute_lfdr_result(
   ttest_result,
   known_target_df = NULL,
-  is_target_column = "is_target"
+  is_target_column = "is_target",
+  protein_column = "UniprotID"
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ The 'UniprotID' column at the first column is the list of uniprot IDs.}
 
 \item{is_target_column}{Name of the boolean column for indicating on-targets
 by TRUE, and FALSE for not-on-targets.}
+
+\item{protein_column}{Column name for protein id in known_target_df}
 }
 \value{
 A list of lists of data frames with the original columns and an

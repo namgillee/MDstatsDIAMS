@@ -121,11 +121,11 @@ run_ttests <- function(
 ) {
   # List of available methods
   method_name_func <- list(
+    msstatslip = compute_mslip_on_stdreport,
+    rots = compute_rots_on_stdreport,
     paired = compute_paired_on_stdreport,
     independent = compute_indep_on_stdreport,
-    shrinkage = compute_shrink_on_stdreport,
-    msstatslip = compute_mslip_on_stdreport,
-    rots = compute_rots_on_stdreport
+    shrinkage = compute_shrink_on_stdreport
   )
 
   # Set method names
@@ -148,7 +148,7 @@ run_ttests <- function(
     message(paste(c("Running the test methods:", method_names), collapse = " "))
 
   # Set base_condition
-  conditions <- unique(report$condition)
+  conditions <- levels(factor(report$condition))
 
   if (is.null(base_condition)) {
     base_condition <- conditions[1]
@@ -261,15 +261,7 @@ compute_contingency_tables <- function(
 #' @param add_legend If not FALSE, legend is added in the plot
 #' @param legend_coord coordinate of the legend
 #' @param legend_cex cex for the legend
-#' @examples
-#'   report <- simulate_fragment_ion_report(default_params)
-#'   resu <- run_ttests(report, boot_denom_eps = 0.3)
-#'   tables <- compute_contingency_tables(resu, alpha = 0.05)
-#'   x <- default_params$prec_mean_condition_shift[-c(1, 2)]
-#'   line_plot_contingency_tables(
-#'     x, tables[-1], xlab = expression(delta),
-#'     ylab = "1 - Type II error rate", cex.lab = 1.5
-#'   )
+#' @param ... Additional arguments to graphics::matplot
 #' @export
 line_plot_contingency_tables <- function(
   x, tables, rejected = TRUE, scale_factor = 1, add_legend = FALSE,
@@ -316,14 +308,6 @@ line_plot_contingency_tables <- function(
 #' @param legend_ncol ncol for the legend
 #' @param legend_cex cex for the legend
 #' @param ... Additional arguments to barplot()
-#' @examples
-#'   report <- simulate_fragment_ion_report(default_params)
-#'   resu <- run_ttests(report, boot_denom_eps = 0.3)
-#'   tables <- compute_contingency_tables(resu, alpha = 0.05)
-#'   bar_plot_contingency_tables(
-#'     tables[1], xlab = "Comparison", ylab = "1 - Type I error rate",
-#'     cex.lab = 1.5
-#'   )
 #' @export
 bar_plot_contingency_tables <- function(
   tables, rejected = FALSE, scale_factor = 1, add_legend = FALSE,

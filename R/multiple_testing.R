@@ -40,12 +40,14 @@ local_fdr <- function(
 #'   The 'UniprotID' column at the first column is the list of uniprot IDs.
 #' @param is_target_column Name of the boolean column for indicating on-targets
 #'   by TRUE, and FALSE for not-on-targets.
+#' @param protein_column  Column name for protein id in known_target_df
 #' @return A list of lists of data frames with the original columns and an
 #'   additional `lfdr` column. The `is_target` column is optionally appended
 #'   only when `known_target_df` is not NULL.
 #' @export
 compute_lfdr_result <- function(
-  ttest_result, known_target_df = NULL, is_target_column = "is_target"
+  ttest_result, known_target_df = NULL, is_target_column = "is_target",
+  protein_column = "UniprotID"
 ) {
   for (method_name in names(ttest_result)) {
     for (comparison in names(ttest_result[[method_name]])) {
@@ -55,7 +57,7 @@ compute_lfdr_result <- function(
 
       if (!is.null(known_target_df)) {
         protein_id <- ttest_result[[method_name]][[comparison]]$protein_id
-        is_target <- (protein_id %in% known_target_df$UniprotID)
+        is_target <- (protein_id %in% known_target_df[[protein_column]])
         ttest_result[[method_name]][[comparison]][[is_target_column]] <-
           is_target
       }

@@ -4,6 +4,8 @@
 
 1. Testing group mean differences in peptide quantities
 
+  - ROTS
+  - MSstatsLiP
   - Paired t-test
   - Independent samples t-test
   - Shrinkage-based t-test

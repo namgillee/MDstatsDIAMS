@@ -33,7 +33,7 @@ convert_sn_to_standard <- function(sn_report, filter_identified = TRUE) {
     )
 
   # Rename columns
-  condition_labels <- unique(sn_report$R.Condition)
+  condition_labels <- sort(unique(sn_report$R.Condition))
   if ("DMSO" %in% condition_labels) {
     condition_labels <- c("DMSO", condition_labels[condition_labels != "DMSO"])
   }
@@ -50,11 +50,10 @@ convert_sn_to_standard <- function(sn_report, filter_identified = TRUE) {
     dplyr::rename(
       replicate = .data$R.Replicate,
       protein_id = .data$PG.ProteinGroups,
-      precursor_qvalue = .data$EG.Qvalue,
       fragment_peak_area = .data$F.NormalizedPeakArea
     ) %>%
     dplyr::select(
-      -c(R.Condition, EG.ModifiedSequence, FG.Charge,
+      -c(R.Condition, EG.ModifiedSequence, EG.Qvalue, FG.Charge,
          F.FrgIon, F.FrgLossType, F.Charge)
     )
 
@@ -80,7 +79,7 @@ convert_ms_to_standard <- function(ms_report) {
     !is.na(ms_report$Intensity) & ms_report$Intensity > 1, ]
 
   # Rename columns
-  condition_labels <- unique(ms_report$Condition)
+  condition_labels <- sort(unique(ms_report$Condition))
   if ("DMSO" %in% condition_labels) {
     condition_labels <- c("DMSO", condition_labels[condition_labels != "DMSO"])
   }
@@ -125,14 +124,17 @@ convert_ms_to_standard <- function(ms_report) {
 convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
 
   # Choose columns
-  evidence <- evidence %>% select(Modified.sequence, Proteins, Raw.file,
-                                  Experiment, Charge, Q.value, Intensity, id)
+  evidence <- evidence %>%
+    dplyr::select(Modified.sequence, Proteins, Raw.file, Experiment, Charge,
+                  Q.value, Intensity, id)
 
   # Filter by q-value
-  evidence <- evidence %>% filter(Q.value <= 0.01)
+  evidence <- evidence %>% dplyr::filter(Q.value <= 0.01)
 
   # Remove decoy
-  evidence <- evidence %>% filter(substr(Proteins, 1, 3) != "CON")
+  is_decoy <- base::sapply(base::strsplit(evidence$Proteins, ";"),
+                           function(tokn) {any(substr(tokn, 1, 3) == "CON")})
+  evidence <- evidence %>% dplyr::filter(!is_decoy)
 
   # Expand msms to fragment ion level.
   matches <- strsplit(msms$Matches, ";")
@@ -153,13 +155,13 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
   )
 
   # Select top-3 fragment ions for each precursor
-  msms <- msms %>% filter(id_top3)
+  msms <- msms %>% dplyr::filter(id_top3)
 
   # Append Matches and Intensities columns
-  evidence <- evidence %>% left_join(msms, by = "id")
+  evidence <- evidence %>% dplyr::left_join(msms, by = "id")
 
   # Append Raw.file, Condition, BioReplicate, IsotopeLabelType
-  evidence <- evidence %>% left_join(annotation, by = "Raw.file")
+  evidence <- evidence %>% dplyr::left_join(annotation, by = "Raw.file")
 
   # Choose unique rows with the smallest Q.value
   evidence <- evidence %>%
@@ -168,7 +170,7 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
                     Condition, .keep_all = TRUE)
 
   # Rename columns
-  condition_labels <- unique(annotation$Condition)
+  condition_labels <- sort(unique(annotation$Condition))
   if ("DMSO" %in% condition_labels) {
     condition_labels <- c("DMSO", condition_labels[condition_labels != "DMSO"])
   }
@@ -183,12 +185,11 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
     dplyr::rename(
       replicate = BioReplicate,
       protein_id = Proteins,
-      fragment_id = Matches,
-      precursor_quantity = Intensity
+      fragment_id = Matches
     ) %>%
     dplyr::select(
       -c(Raw.file, Condition, Modified.sequence, Charge, Experiment, Q.value,
-         id, IsotopeLabelType, id_top3, Intensities)
+         Intensity, id, IsotopeLabelType, id_top3, Intensities)
     )
 
   # Update replicate
@@ -213,14 +214,16 @@ convert_mq_to_standard <- function(evidence, msms, annotation = NULL) {
 #' @export
 convert_sk_to_standard <- function(sk_report, annotation) {
 
-  sk_report <- sk_report[
-    !is.na(sk_report$Area) & sk_report$Area > 1, ]
+  sk_report$Area <- as.numeric(sk_report$Area)
+  sk_report <- sk_report %>% dplyr::filter(
+    !is.na(Area) & Area > 1 & substr(Protein, 1, 5) != "Decoy"
+  )
 
   # Append Condition, Run
   sk_report <- merge(sk_report, annotation, by = "Replicate", all.x = TRUE)
 
   # Rename columns
-  condition_labels <- unique(sk_report$Condition)
+  condition_labels <- sort(unique(sk_report$Condition))
   if ("DMSO" %in% condition_labels) {
     condition_labels <- c("DMSO", condition_labels[condition_labels != "DMSO"])
   }
@@ -228,17 +231,20 @@ convert_sk_to_standard <- function(sk_report, annotation) {
   sk_report <- sk_report %>%
     dplyr::mutate(
       condition = factor(.data$Condition, labels = condition_labels),
-      experiment = "EXP"
+      experiment = "EXP",
+      precursor_id = paste0(Peptide, ".", Precursor.Charge),
+      fragment_id = paste0(Fragment.Ion, ".", Product.Charge),
     ) %>%
     dplyr::rename(
       replicate = Replicate,
       protein_id = Protein,
-      precursor_id = Peptide,
-      fragment_id = Fragment.Ion,
       fragment_peak_area = Area
     ) %>%
     dplyr::select(
-      -c(Run, Condition)
+      -c(
+        Run, Condition, Peptide, Precursor.Charge, Fragment.Ion, Product.Charge,
+        Precursor.Mz, Product.Mz, Retention.Time, Background, Peak.Rank
+      )
     )
 
   # Update replicate
@@ -251,7 +257,8 @@ convert_sk_to_standard <- function(sk_report, annotation) {
 
 #' Convert standard report into MSstatsLiP format
 #'
-#' No preprocessing is carried out, but column names are changed.
+#' Column names are changed, and input report is preprocessed in the same way as
+#' MSstatsLiP converter.
 #' @param report A standard report. Required columns are condition, replicate,
 #'   experiment, protein_id, precursor_id, fragment_id, fragment_peak_area.
 #' @param drop_experiment If TRUE, `experiment` column is removed from output.
@@ -275,7 +282,7 @@ convert_standard_to_mslip <- function(report, drop_experiment = FALSE) {
     IsotopeLabelType = "L"
   )
 
-  # precursor, fragment ion
+  # Columns for precursor, fragment ion
   split_precursor_id <- strsplit(report$precursor_id, "[.]")
   report[["PeptideSequence"]] <- sapply(split_precursor_id, function(s) s[1])
   report[["PrecursorCharge"]] <- sapply(
@@ -288,7 +295,7 @@ convert_standard_to_mslip <- function(report, drop_experiment = FALSE) {
     split_fragment_id, function(s) as.numeric(s[2])
   )
 
-  # condition, experiment
+  # Columns for protein, condition
   report <- report %>%
     dplyr::rename(
       ProteinName = .data$protein_id,
@@ -307,7 +314,24 @@ convert_standard_to_mslip <- function(report, drop_experiment = FALSE) {
       dplyr::select(-c(replicate, precursor_id, fragment_id))
   }
 
-  return(report)
+  # Preprocessing 1: Remove shared peptides: prot_count_per_pep == 1
+  prot_count_per_pep <- report %>%
+    dplyr::group_by(PeptideSequence) %>%
+    dplyr::mutate(count = dplyr::n_distinct(ProteinName)) %>%
+    dplyr::pull(count)
+
+  # Preprocessing 2: Remove features with less than 3 measurements across runs:
+  # min_run_count_per_feat >= 3
+  min_run_count_per_feat <- report %>%
+    dplyr::group_by(Condition, ProteinName, PeptideSequence, PrecursorCharge,
+                    FragmentIon, ProductCharge) %>%
+    dplyr::mutate(run_count = length(ProductCharge)) %>%
+    dplyr::group_by(ProteinName, PeptideSequence, PrecursorCharge,
+                    FragmentIon, ProductCharge) %>%
+    dplyr::mutate(min_run_count = min(run_count)) %>%
+    dplyr::pull(min_run_count)
+
+  return(report[(prot_count_per_pep == 1) & (min_run_count_per_feat >= 3),])
 }
 
 
@@ -325,6 +349,7 @@ convert_standard_to_mslip <- function(report, drop_experiment = FALSE) {
 #' @param exp_column Column name for Experiment
 #' @importFrom dplyr %>%
 #' @return Annotation data frame.
+#' @export
 create_annotation_df <- function(
   evidence,
   n_replicates_per_condition = NULL,
